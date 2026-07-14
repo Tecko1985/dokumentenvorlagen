@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dokumentenvorlagen</title>
+<meta name="theme-color" content="#1a56a0" />
+<link rel="stylesheet" href="style.css?v=1.0" />
+</head>
+<body>
+
+<header>
+  <h1>📄 Dokumentenvorlagen <span class="version-badge version-badge-link" id="version-badge" role="button" tabindex="0" title="Versionshistorie ansehen"></span></h1>
+  <a href="https://tecko1985.github.io/ToolsUebersicht/" class="back-to-dashboard">← Zurück zum Dashboard</a>
+  <div class="header-right">
+    <img class="header-logo" src="logo.png" alt="1. SC 1911 e.V. Heilbad Heiligenstadt" />
+  </div>
+</header>
+
+<!-- Login erforderlich -->
+<div class="connect-screen" id="app-connect-screen" style="display:none;">
+  <div class="card">
+    <h2>Anmeldung erforderlich</h2>
+    <p class="muted">
+      Dieses Tool läuft über dein <strong>Tools-Übersicht</strong>-Konto. Melde dich dort
+      einmalig an – danach wird diese Seite automatisch geladen.
+    </p>
+    <div class="btn-row" style="justify-content:flex-start;">
+      <a class="btn" href="https://tecko1985.github.io/ToolsUebersicht/">Zur Tools-Übersicht &amp; anmelden</a>
+    </div>
+    <p class="muted" id="app-connect-error" style="display:none; color:var(--red); margin-top:12px;"></p>
+  </div>
+</div>
+
+<!-- Haupt-App -->
+<div id="app-main" style="display:none;">
+  <nav>
+    <button data-tab="erstellen" class="active">Dokumente erstellen</button>
+    <button data-tab="vorlagen">Vorlagen</button>
+    <button data-tab="einstellungen" style="margin-left:auto;">Einstellungen</button>
+  </nav>
+
+  <main>
+
+    <!-- ===== TAB: Dokumente erstellen ===== -->
+    <section class="tab-section active" id="tab-erstellen">
+
+      <div class="empty-state card" id="erstellen-no-templates" style="display:none;">
+        Es sind noch keine Vorlagen angelegt. Wechsle zum Tab <strong>Vorlagen</strong> und lade
+        deine erste Word-Vorlage (.docx mit Platzhaltern wie <code>{{VORNAME}}</code>) hoch.
+      </div>
+
+      <div id="erstellen-flow" style="display:none;">
+        <!-- Schritt 1: Vorlage -->
+        <div class="card">
+          <h2>1 · Vorlage wählen</h2>
+          <div class="form-field" style="max-width:420px;">
+            <label>Dokumentvorlage</label>
+            <select id="tpl-select"></select>
+          </div>
+          <p class="muted" id="tpl-desc" style="margin-top:10px;"></p>
+          <div id="tpl-fields" style="margin-top:10px;"></div>
+          <p class="warn-banner" id="tpl-split-warn" style="display:none;"></p>
+        </div>
+
+        <!-- Schritt 2: Empfänger -->
+        <div class="card">
+          <h2>2 · Empfänger wählen</h2>
+          <p class="muted" style="margin-bottom:12px;">Datenquelle für die Platzhalter:</p>
+          <label class="radio-option">
+            <input type="radio" name="quelle" id="quelle-profil" value="profil" checked />
+            <span><strong>Trainerprofil</strong> — Name, Lizenz, Mannschaft (aus den angelegten Konten).</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="quelle" id="quelle-trainerdaten" value="trainerdaten" />
+            <span><strong>Trainerdaten inkl. Adresse &amp; Bankverbindung</strong> — benötigt einmalig das WebDAV-App-Passwort.</span>
+          </label>
+
+          <!-- Admin-Datenzugriff (App-Passwort) -->
+          <div id="td-connect" class="subcard" style="display:none;">
+            <p class="muted" style="margin-bottom:10px;">
+              Zugriff auf die Trainerdaten (inkl. IBAN). Das App-Passwort wird nur in diesem Browser
+              gespeichert, nie in der Cloud. Bankdaten verlassen deinen Rechner nicht.
+            </p>
+            <div class="form-grid">
+              <div class="form-field"><label>Benutzername</label><input type="text" id="td-username" /></div>
+              <div class="form-field"><label>App-Passwort</label><input type="password" id="td-password" autocomplete="off" /></div>
+            </div>
+            <p class="error-banner" id="td-connect-error"></p>
+            <div class="btn-row" style="justify-content:flex-start;">
+              <button type="button" class="btn small" id="btn-td-connect">Verbinden</button>
+            </div>
+          </div>
+          <p class="muted" id="td-connected-hint" style="display:none; color:var(--green); font-weight:600;"></p>
+
+          <div id="recipient-area" style="margin-top:16px;">
+            <div class="btn-row" style="justify-content:flex-start; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+              <div class="form-field" style="flex:1 1 240px; margin-bottom:0;">
+                <input type="text" id="recipient-search" placeholder="Suche nach Name…" autocomplete="off" />
+              </div>
+              <button type="button" class="btn secondary small" id="btn-recipients-all">Alle</button>
+              <button type="button" class="btn secondary small" id="btn-recipients-none">Keine</button>
+            </div>
+            <p class="error-banner" id="recipient-error"></p>
+            <div class="empty-state" id="recipient-empty" style="display:none;">Keine Empfänger gefunden.</div>
+            <div id="recipient-list" class="recipient-list"></div>
+            <p class="muted" id="recipient-count" style="margin-top:10px; font-size:13px;"></p>
+          </div>
+        </div>
+
+        <!-- Schritt 3: Erzeugen -->
+        <div class="card">
+          <h2>3 · Dokumente erzeugen</h2>
+          <div class="btn-row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn secondary small" id="btn-preview-toggle">Vorschau anzeigen</button>
+            <button type="button" class="btn success" id="btn-erzeugen">Dokumente erzeugen (ZIP)</button>
+            <span class="muted" id="erzeugen-status" style="font-size:13px;"></span>
+          </div>
+          <div id="preview-wrap" style="display:none; margin-top:16px; overflow-x:auto;"></div>
+          <p class="muted" style="margin-top:16px; font-size:13px; line-height:1.5;">
+            Ergebnis sind Word-Dokumente (.docx). Für originalgetreue PDFs das ZIP entpacken und
+            <code>docx-zu-pdf.ps1</code> über den Ordner laufen lassen (siehe Tab „Einstellungen").
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: Vorlagen ===== -->
+    <section class="tab-section" id="tab-vorlagen">
+      <div class="card">
+        <h2>Neue Vorlage hochladen</h2>
+        <p class="muted" style="margin-bottom:14px; line-height:1.5;">
+          Eine Word-Datei (.docx) mit Platzhaltern im Text, z. B. <code>{{VORNAME}} {{NACHNAME}}</code>,
+          <code>{{STRASSE}}</code>, <code>{{IBAN}}</code>. Tipp: Platzhalter im Word <em>am Stück</em>
+          eintippen (nicht mitten drin die Formatierung wechseln), sonst wird er nicht erkannt.
+        </p>
+        <div class="form-grid">
+          <div class="form-field"><label>Name der Vorlage</label><input type="text" id="tpl-new-name" placeholder="z. B. Trainervertrag" /></div>
+          <div class="form-field"><label>Beschreibung (optional)</label><input type="text" id="tpl-new-desc" placeholder="kurze Notiz" /></div>
+        </div>
+        <div class="btn-row" style="justify-content:flex-start; gap:10px; margin-top:8px; flex-wrap:wrap;">
+          <button type="button" class="btn secondary small" id="btn-tpl-file">Word-Datei wählen (.docx)…</button>
+          <span class="muted" id="tpl-file-name" style="font-size:13px;"></span>
+          <input type="file" id="tpl-file-input" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none;" />
+        </div>
+        <div id="tpl-analyze" style="margin-top:12px;"></div>
+        <p class="error-banner" id="tpl-upload-error"></p>
+        <div class="btn-row" style="justify-content:flex-start; margin-top:10px;">
+          <button type="button" class="btn success" id="btn-tpl-upload" disabled>Vorlage speichern</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Vorhandene Vorlagen</h2>
+        <div class="empty-state" id="tpl-list-empty" style="display:none;">Noch keine Vorlagen gespeichert.</div>
+        <div id="tpl-list"></div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: Einstellungen ===== -->
+    <section class="tab-section" id="tab-einstellungen">
+      <div class="card">
+        <h3>Trainerdaten-Zugriff</h3>
+        <p class="muted" id="settings-td-status" style="margin-bottom:10px;">Nicht verbunden.</p>
+        <div class="btn-row" style="justify-content:flex-start;">
+          <button class="btn secondary small" id="btn-td-disconnect" style="display:none;">Verbindung trennen</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>PDF erzeugen (lokal)</h3>
+        <p class="muted" style="line-height:1.6;">
+          Das Tool erzeugt Word-Dokumente. Für <strong>originalgetreue PDFs</strong> das erzeugte ZIP
+          entpacken und im Ordner das Skript <code>docx-zu-pdf.ps1</code> ausführen — es exportiert jede
+          .docx über Microsoft Word als PDF (die Daten verlassen den Rechner nicht). Aufruf in PowerShell
+          im entpackten Ordner: <code>.\docx-zu-pdf.ps1</code>
+        </p>
+        <div class="btn-row" style="justify-content:flex-start; margin-top:10px;">
+          <a class="btn secondary small" href="docx-zu-pdf.ps1" download>Skript herunterladen (docx-zu-pdf.ps1)</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Versionshistorie <span class="version-badge-dark" id="version-badge-2"></span></h3>
+        <div id="changelog-list"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="config.js?v=1.0"></script>
+<script src="db.js?v=1.0"></script>
+<script src="docx-fill.js?v=1.0"></script>
+<script src="app.js?v=1.0"></script>
+</body>
+</html>

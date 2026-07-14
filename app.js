@@ -1,0 +1,571 @@
+// UI-Logik für Dokumentenvorlagen. Vanilla JS, kein Framework.
+// Datenschicht: db.js (Gateway + Admin-WebDAV), Füllung: docx-fill.js.
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let catalog = { vorlagen: [] };     // { vorlagen: [{ id, name, beschreibung, fileId, dateiName, ersetzbar[], erkannt[], gesplittet[], erstelltAm }] }
+let currentUser = null;
+let profiles = [];                  // Trainerprofile (Gateway), lazy geladen
+let webdavConfig = null;            // Admin-WebDAV-Zugang (App-Passwort)
+let recipients = [];                // aktuell geladene, normalisierte Empfänger
+let selectedIds = new Set();        // ausgewählte Empfänger-Ids
+let pendingUpload = null;           // { file, arrayBuffer, analyse } beim Vorlagen-Upload
+
+// ── kleine Helfer ─────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const show = (id, on = true) => { const e = $(id); if (e) e.style.display = on ? "" : "none"; };
+const val = (id) => { const e = $(id); return e ? e.value : ""; };
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function fmtDateOnly(iso) {
+  if (!iso) return "";
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : String(iso);
+}
+function ibanFmt(iban) {
+  if (!iban) return "";
+  return String(iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
+}
+function heuteStr() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+function sanitizeFilename(s) {
+  return String(s || "").replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "_").trim() || "Dokument";
+}
+function normName(s) { return String(s || "").trim().toLowerCase(); }
+// Vertauschte Vorname/Nachname tolerieren (Konvention aus der übrigen Flotte).
+function sameNamePair(v1, n1, v2, n2) {
+  v1 = normName(v1); n1 = normName(n1); v2 = normName(v2); n2 = normName(n2);
+  if (!v1 && !n1) return false;
+  return (v1 === v2 && n1 === n2) || (v1 === n2 && n1 === v2);
+}
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
+}
+function bannerError(id, msg) {
+  const e = $(id);
+  if (!e) return;
+  if (msg) { e.textContent = msg; e.classList.add("show"); }
+  else { e.textContent = ""; e.classList.remove("show"); }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", init);
+
+async function init() {
+  renderVersionBadges();
+  renderChangelog();
+  wireStaticEvents();
+
+  if (!getSessionToken()) { show("app-connect-screen", true); return; }
+
+  try {
+    currentUser = await fetchMe();
+  } catch (e) {
+    if (e instanceof NotLoggedInError) { show("app-connect-screen", true); return; }
+    // fetchMe-Fehler ist nicht fatal — App trotzdem zeigen
+  }
+
+  show("app-main", true);
+  show("app-connect-screen", false);
+
+  // Gespeicherten Admin-WebDAV-Zugang übernehmen (falls vorhanden).
+  try {
+    const saved = await FileStore.getWebdavConfig();
+    if (saved && saved.password) webdavConfig = saved;
+  } catch (_) {}
+  $("td-username").value = (webdavConfig && webdavConfig.username) || WEBDAV_DEFAULT_USERNAME;
+  updateTrainerdatenConnectionUi();
+
+  try {
+    const loaded = await gatewayLoadCatalog();
+    if (loaded && Array.isArray(loaded.vorlagen)) catalog = loaded;
+  } catch (e) {
+    if (e instanceof NotLoggedInError) { location.reload(); return; }
+    console.warn("Katalog konnte nicht geladen werden:", e);
+  }
+
+  renderTemplateList();
+  renderTemplateSelect();
+  refreshErstellenTab();
+
+  // Empfänger der Default-Quelle (Profil) direkt laden, damit die Liste nicht leer wirkt.
+  if ((catalog.vorlagen || []).length) onQuelleChanged();
+}
+
+// ── Statische Events ──────────────────────────────────────────────────────────
+function wireStaticEvents() {
+  // Tabs
+  document.querySelectorAll("nav button[data-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+  // Versionsbadge -> Einstellungen/Changelog
+  const vb = $("version-badge");
+  if (vb) vb.addEventListener("click", () => { switchTab("einstellungen"); $("changelog-list").scrollIntoView({ behavior: "smooth" }); });
+
+  // Vorlagen-Upload
+  $("btn-tpl-file").addEventListener("click", () => $("tpl-file-input").click());
+  $("tpl-file-input").addEventListener("change", (e) => onTemplateFileChosen(e.target.files[0]));
+  $("btn-tpl-upload").addEventListener("click", saveTemplate);
+
+  // Erstellen: Vorlage + Quelle
+  $("tpl-select").addEventListener("change", onTemplateSelected);
+  document.querySelectorAll('input[name="quelle"]').forEach((r) =>
+    r.addEventListener("change", onQuelleChanged));
+
+  // Admin-Connect
+  $("btn-td-connect").addEventListener("click", trainerdatenConnect);
+  $("btn-td-disconnect").addEventListener("click", trainerdatenDisconnect);
+
+  // Empfänger
+  $("recipient-search").addEventListener("input", renderRecipientList);
+  $("btn-recipients-all").addEventListener("click", () => { visibleRecipients().forEach((r) => selectedIds.add(r.id)); renderRecipientList(); updateCount(); });
+  $("btn-recipients-none").addEventListener("click", () => { selectedIds.clear(); renderRecipientList(); updateCount(); });
+
+  // Erzeugen
+  $("btn-preview-toggle").addEventListener("click", togglePreview);
+  $("btn-erzeugen").addEventListener("click", erzeugen);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll("nav button[data-tab]").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".tab-section").forEach((s) => s.classList.toggle("active", s.id === "tab-" + tab));
+}
+
+// ── Vorlagen-Verwaltung ───────────────────────────────────────────────────────
+async function onTemplateFileChosen(file) {
+  bannerError("tpl-upload-error", "");
+  $("tpl-analyze").innerHTML = "";
+  $("btn-tpl-upload").disabled = true;
+  pendingUpload = null;
+  if (!file) return;
+  $("tpl-file-name").textContent = file.name;
+  if (!/\.docx$/i.test(file.name)) { bannerError("tpl-upload-error", "Bitte eine Word-Datei (.docx) wählen."); return; }
+  if (file.size > MAX_TEMPLATE_BYTES) { bannerError("tpl-upload-error", "Datei ist zu groß (max. 8 MB)."); return; }
+  let arrayBuffer, analyse;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+    analyse = await DocxFill.analyzeTemplate(arrayBuffer);
+  } catch (e) { bannerError("tpl-upload-error", e.message || "Datei konnte nicht gelesen werden."); return; }
+
+  pendingUpload = { file, arrayBuffer, analyse };
+  if (!val("tpl-new-name").trim()) $("tpl-new-name").value = file.name.replace(/\.docx$/i, "");
+  $("tpl-analyze").innerHTML = renderAnalyse(analyse);
+  $("btn-tpl-upload").disabled = false;
+}
+
+function renderAnalyse(analyse) {
+  let html = "<div class='section-divider'>Erkannte Platzhalter</div>";
+  if (!analyse.erkannt.length) {
+    html += "<p class='muted'>Keine Platzhalter gefunden. Das Dokument enthält keine <code>{{…}}</code>-Felder — es würde für jeden Empfänger identisch erzeugt.</p>";
+  } else {
+    html += "<div>" + analyse.erkannt.map((k) => fieldChip(k)).join("") + "</div>";
+  }
+  if (analyse.gesplittet.length) {
+    html += `<p class='warn-banner'>⚠️ Diese Platzhalter sind im Word durch Formatierung unterbrochen und werden <strong>nicht</strong> ersetzt: ${analyse.gesplittet.map((k) => "{{" + esc(k) + "}}").join(", ")}. Bitte im Word einmal am Stück neu eintippen.</p>`;
+  }
+  return html;
+}
+
+function fieldChip(key) {
+  const def = PLATZHALTER_MAP[key];
+  const cls = def ? def.quelle : "unbekannt";
+  const title = def ? def.label : "Unbekannter Platzhalter — wird für jeden Empfänger leer gelassen";
+  return `<span class="field-chip ${cls}" title="${esc(title)}">{{${esc(key)}}}</span>`;
+}
+
+async function saveTemplate() {
+  if (!pendingUpload) return;
+  const name = val("tpl-new-name").trim() || pendingUpload.file.name.replace(/\.docx$/i, "");
+  bannerError("tpl-upload-error", "");
+  $("btn-tpl-upload").disabled = true;
+  $("btn-tpl-upload").textContent = "Speichern…";
+  try {
+    const fileId = crypto.randomUUID();
+    const base64 = await blobToBase64(pendingUpload.file);
+    await gatewayFilePut(fileId, pendingUpload.file.name, pendingUpload.file.type, base64);
+    catalog.vorlagen.push({
+      id: crypto.randomUUID(),
+      name,
+      beschreibung: val("tpl-new-desc").trim(),
+      fileId,
+      dateiName: pendingUpload.file.name,
+      ersetzbar: pendingUpload.analyse.ersetzbar,
+      erkannt: pendingUpload.analyse.erkannt,
+      gesplittet: pendingUpload.analyse.gesplittet,
+      erstelltAm: new Date().toISOString()
+    });
+    await saveCatalogSafe();
+    // Reset
+    pendingUpload = null;
+    $("tpl-new-name").value = ""; $("tpl-new-desc").value = "";
+    $("tpl-file-name").textContent = ""; $("tpl-analyze").innerHTML = "";
+    $("tpl-file-input").value = "";
+    renderTemplateList();
+    renderTemplateSelect();
+    refreshErstellenTab();
+  } catch (e) {
+    bannerError("tpl-upload-error", e.message || "Speichern fehlgeschlagen.");
+  } finally {
+    $("btn-tpl-upload").textContent = "Vorlage speichern";
+    $("btn-tpl-upload").disabled = !pendingUpload;
+  }
+}
+
+async function saveCatalogSafe() {
+  try {
+    await gatewaySaveCatalog(catalog);
+  } catch (e) {
+    if (e instanceof ConflictError) {
+      // Remote-Stand neu laden und Fehler weiterreichen (letzte Aktion ggf. wiederholen).
+      const fresh = await gatewayLoadCatalog();
+      if (fresh && Array.isArray(fresh.vorlagen)) catalog = fresh;
+      renderTemplateList(); renderTemplateSelect();
+      throw new Error("Der Katalog wurde zwischenzeitlich anderswo geändert und neu geladen — bitte erneut versuchen.");
+    }
+    throw e;
+  }
+}
+
+function renderTemplateList() {
+  const wrap = $("tpl-list");
+  const list = catalog.vorlagen || [];
+  show("tpl-list-empty", list.length === 0);
+  wrap.innerHTML = list.map((v) => {
+    const chips = (v.erkannt || []).map((k) => fieldChip(k)).join("") || "<span class='muted' style='font-size:13px;'>keine Platzhalter</span>";
+    const warn = (v.gesplittet && v.gesplittet.length)
+      ? `<p class='warn-banner'>⚠️ Nicht ersetzbare Platzhalter: ${v.gesplittet.map((k) => "{{" + esc(k) + "}}").join(", ")}</p>` : "";
+    return `<div class="tpl-item">
+      <div class="tpl-head">
+        <span class="tpl-name">${esc(v.name)}</span>
+        <span class="tpl-desc">${esc(v.beschreibung || "")}</span>
+      </div>
+      <div style="margin-top:8px;">${chips}</div>
+      ${warn}
+      <div class="tpl-actions">
+        <button type="button" class="btn secondary small" data-act="rename" data-id="${esc(v.id)}">Umbenennen</button>
+        <button type="button" class="btn secondary small" data-act="desc" data-id="${esc(v.id)}">Beschreibung</button>
+        <button type="button" class="btn secondary small" data-act="download" data-id="${esc(v.id)}">Vorlage herunterladen</button>
+        <button type="button" class="btn danger small" data-act="delete" data-id="${esc(v.id)}">Löschen</button>
+      </div>
+    </div>`;
+  }).join("");
+  wrap.querySelectorAll("button[data-act]").forEach((btn) =>
+    btn.addEventListener("click", () => templateAction(btn.dataset.act, btn.dataset.id)));
+}
+
+async function templateAction(act, id) {
+  const v = catalog.vorlagen.find((x) => x.id === id);
+  if (!v) return;
+  if (act === "rename") {
+    const name = prompt("Neuer Name der Vorlage:", v.name);
+    if (name == null) return;
+    v.name = name.trim() || v.name;
+    await saveCatalogSafe(); renderTemplateList(); renderTemplateSelect(); refreshErstellenTab();
+  } else if (act === "desc") {
+    const d = prompt("Beschreibung:", v.beschreibung || "");
+    if (d == null) return;
+    v.beschreibung = d.trim();
+    await saveCatalogSafe(); renderTemplateList();
+  } else if (act === "download") {
+    try {
+      const ab = await gatewayFileGet(v.fileId);
+      downloadBlob(new Blob([ab], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }), v.dateiName || (sanitizeFilename(v.name) + ".docx"));
+    } catch (e) { alert(e.message || "Vorlage nicht abrufbar."); }
+  } else if (act === "delete") {
+    if (!confirm(`Vorlage „${v.name}" wirklich löschen?`)) return;
+    try { await gatewayFileDelete(v.fileId); } catch (_) { /* Datei evtl. schon weg */ }
+    catalog.vorlagen = catalog.vorlagen.filter((x) => x.id !== id);
+    try { await saveCatalogSafe(); } catch (e) { alert(e.message); return; }
+    renderTemplateList(); renderTemplateSelect(); refreshErstellenTab();
+  }
+}
+
+// ── Erstellen-Tab ─────────────────────────────────────────────────────────────
+function renderTemplateSelect() {
+  const sel = $("tpl-select");
+  const list = catalog.vorlagen || [];
+  const prev = sel.value;
+  sel.innerHTML = list.map((v) => `<option value="${esc(v.id)}">${esc(v.name)}</option>`).join("");
+  if (prev && list.some((v) => v.id === prev)) sel.value = prev;
+}
+
+function refreshErstellenTab() {
+  const has = (catalog.vorlagen || []).length > 0;
+  show("erstellen-no-templates", !has);
+  show("erstellen-flow", has);
+  if (has) onTemplateSelected();
+}
+
+function currentVorlage() {
+  const id = val("tpl-select");
+  return (catalog.vorlagen || []).find((v) => v.id === id) || null;
+}
+function currentQuelle() {
+  const r = document.querySelector('input[name="quelle"]:checked');
+  return r ? r.value : "profil";
+}
+
+function onTemplateSelected() {
+  const v = currentVorlage();
+  if (!v) return;
+  $("tpl-desc").textContent = v.beschreibung || "";
+  const chips = (v.erkannt || []).map((k) => fieldChip(k)).join("") || "<span class='muted' style='font-size:13px;'>keine Platzhalter</span>";
+  $("tpl-fields").innerHTML = "<span class='muted' style='font-size:13px; margin-right:6px;'>Felder:</span>" + chips;
+  const splitWarn = $("tpl-split-warn");
+  if (v.gesplittet && v.gesplittet.length) {
+    splitWarn.textContent = `⚠️ Nicht ersetzbare (gesplittete) Platzhalter: ${v.gesplittet.map((k) => "{{" + k + "}}").join(", ")} — im Word am Stück neu eintippen.`;
+    splitWarn.style.display = "";
+  } else splitWarn.style.display = "none";
+  renderRecipientList();
+  updateCount();
+  refreshPreviewIfOpen();
+}
+
+function onQuelleChanged() {
+  const quelle = currentQuelle();
+  if (quelle === "trainerdaten" && !webdavConfig) {
+    show("td-connect", true);
+    show("td-connected-hint", false);
+  } else {
+    show("td-connect", false);
+    loadRecipients();
+  }
+}
+
+async function trainerdatenConnect() {
+  bannerError("td-connect-error", "");
+  const password = val("td-password");
+  const username = val("td-username").trim() || WEBDAV_DEFAULT_USERNAME;
+  if (!password) { bannerError("td-connect-error", "Bitte App-Passwort eingeben."); return; }
+  const cfg = { url: TRAINERDATEN_WEBDAV_URL, username, password, proxyUrl: CORS_PROXY_DEFAULT_URL };
+  $("btn-td-connect").disabled = true; $("btn-td-connect").textContent = "Verbinde…";
+  try {
+    await fetchTrainerdaten(cfg); // Test-Read
+    webdavConfig = cfg;
+    await FileStore.setWebdavConfig(cfg);
+    $("td-password").value = "";
+    show("td-connect", false);
+    updateTrainerdatenConnectionUi();
+    await loadRecipients();
+  } catch (e) {
+    bannerError("td-connect-error", e.message || "Verbindung fehlgeschlagen.");
+  } finally {
+    $("btn-td-connect").disabled = false; $("btn-td-connect").textContent = "Verbinden";
+  }
+}
+
+async function trainerdatenDisconnect() {
+  webdavConfig = null;
+  try { await FileStore.clearWebdavConfig(); } catch (_) {}
+  updateTrainerdatenConnectionUi();
+  // Falls gerade Trainerdaten-Quelle aktiv war -> zurück auf Profil.
+  if (currentQuelle() === "trainerdaten") { $("quelle-profil").checked = true; onQuelleChanged(); }
+}
+
+function updateTrainerdatenConnectionUi() {
+  const connected = !!(webdavConfig && webdavConfig.password);
+  $("settings-td-status").textContent = connected
+    ? `Verbunden als „${webdavConfig.username}" (App-Passwort nur in diesem Browser gespeichert).`
+    : "Nicht verbunden.";
+  show("btn-td-disconnect", connected);
+  const hint = $("td-connected-hint");
+  if (connected) { hint.textContent = "✓ Mit Trainerdaten verbunden — Adresse und Bankverbindung verfügbar."; show("td-connected-hint", true); }
+  else show("td-connected-hint", false);
+}
+
+async function loadRecipients() {
+  bannerError("recipient-error", "");
+  const quelle = currentQuelle();
+  recipients = [];
+  selectedIds.clear();
+  $("recipient-list").innerHTML = "<p class='muted' style='padding:12px;'>Lade…</p>";
+  try {
+    if (quelle === "profil") {
+      if (!profiles.length) profiles = await fetchTrainerProfiles();
+      recipients = profiles
+        .filter((p) => p.vorname || p.nachname)
+        .map((p) => ({
+          id: p.username || `${p.vorname} ${p.nachname}`,
+          vorname: p.vorname || "", nachname: p.nachname || "",
+          lizenz: p.lizenz || "", mannschaften: p.mannschaften || []
+        }));
+    } else {
+      if (!webdavConfig) { show("td-connect", true); $("recipient-list").innerHTML = ""; return; }
+      const td = await fetchTrainerdaten(webdavConfig);
+      if (!profiles.length) { try { profiles = await fetchTrainerProfiles(); } catch (_) {} }
+      recipients = td
+        .filter((t) => t.vorname || t.nachname)
+        .map((t) => {
+          const prof = profiles.find((p) => sameNamePair(p.vorname, p.nachname, t.vorname, t.nachname));
+          return {
+            id: t.id || `${t.vorname} ${t.nachname}`,
+            vorname: t.vorname || "", nachname: t.nachname || "",
+            geburtsdatum: t.geburtsdatum || "", strasse: t.strasse || "",
+            plz: t.plz || "", ort: t.ort || "", telefon: t.telefon || "", email: t.email || "",
+            iban: t.iban || "", bankname: t.bankname || "", bic: t.bic || "",
+            lizenz: t.lizenz || (prof && prof.lizenz) || "",
+            pauschale: t.pauschale != null ? t.pauschale : "",
+            mannschaften: (prof && prof.mannschaften) || []
+          };
+        });
+    }
+    recipients.sort((a, b) => (a.nachname || "").localeCompare(b.nachname || "", "de") || (a.vorname || "").localeCompare(b.vorname || "", "de"));
+  } catch (e) {
+    $("recipient-list").innerHTML = "";
+    bannerError("recipient-error", e.message || "Empfänger konnten nicht geladen werden.");
+    return;
+  }
+  renderRecipientList();
+  updateCount();
+  refreshPreviewIfOpen();
+}
+
+function visibleRecipients() {
+  const q = normName(val("recipient-search"));
+  if (!q) return recipients;
+  return recipients.filter((r) => (`${r.vorname} ${r.nachname}`).toLowerCase().includes(q));
+}
+
+// Welche der (ersetzbaren) Platzhalter der aktuellen Vorlage kann dieser Empfänger
+// nicht füllen? (auto-Felder DATUM/JAHR sind immer vorhanden.)
+function missingFieldsFor(emp) {
+  const v = currentVorlage();
+  if (!v) return [];
+  const w = buildWerte(emp);
+  return (v.ersetzbar || []).filter((k) => PLATZHALTER_MAP[k] && PLATZHALTER_MAP[k].quelle !== "auto" && !(w[k] && String(w[k]).trim()));
+}
+
+function renderRecipientList() {
+  const list = visibleRecipients();
+  const wrap = $("recipient-list");
+  show("recipient-empty", list.length === 0);
+  wrap.innerHTML = list.map((r) => {
+    const missing = missingFieldsFor(r);
+    const meta = [];
+    if (r.lizenz) meta.push(esc(r.lizenz));
+    if (r.mannschaften && r.mannschaften.length) meta.push(esc(r.mannschaften.join(", ")));
+    const metaText = missing.length ? `fehlt: ${missing.map((k) => "{{" + esc(k) + "}}").join(", ")}` : meta.join(" · ");
+    return `<label class="recipient-row ${missing.length ? "missing" : ""}">
+      <input type="checkbox" data-id="${esc(r.id)}" ${selectedIds.has(r.id) ? "checked" : ""} />
+      <span class="r-name">${esc(r.vorname)} ${esc(r.nachname)}</span>
+      <span class="r-meta">${metaText}</span>
+    </label>`;
+  }).join("");
+  wrap.querySelectorAll("input[type=checkbox]").forEach((cb) =>
+    cb.addEventListener("change", () => {
+      if (cb.checked) selectedIds.add(cb.dataset.id); else selectedIds.delete(cb.dataset.id);
+      updateCount(); refreshPreviewIfOpen();
+    }));
+}
+
+function updateCount() {
+  const n = selectedIds.size;
+  $("recipient-count").textContent = n ? `${n} Empfänger ausgewählt.` : "Keine Empfänger ausgewählt.";
+}
+
+// ── Werte-Aufbau ──────────────────────────────────────────────────────────────
+function buildWerte(emp) {
+  const mann = Array.isArray(emp.mannschaften) ? emp.mannschaften.join(", ") : (emp.mannschaften || "");
+  const d = new Date();
+  return {
+    VORNAME: emp.vorname || "", NACHNAME: emp.nachname || "",
+    MANNSCHAFT: mann, LIZENZ: emp.lizenz || "",
+    GEBURTSDATUM: fmtDateOnly(emp.geburtsdatum),
+    STRASSE: emp.strasse || "", PLZ: emp.plz || "", ORT: emp.ort || "",
+    PLZ_ORT: `${emp.plz || ""} ${emp.ort || ""}`.trim(),
+    TELEFON: emp.telefon || "", EMAIL: emp.email || "",
+    IBAN: ibanFmt(emp.iban), BANKNAME: emp.bankname || "", BIC: emp.bic || "",
+    PAUSCHALE: emp.pauschale != null ? String(emp.pauschale) : "",
+    DATUM: heuteStr(), JAHR: String(d.getFullYear())
+  };
+}
+
+// ── Vorschau ──────────────────────────────────────────────────────────────────
+function togglePreview() {
+  const wrap = $("preview-wrap");
+  const open = wrap.style.display !== "none" && wrap.innerHTML !== "";
+  if (open) { wrap.style.display = "none"; $("btn-preview-toggle").textContent = "Vorschau anzeigen"; }
+  else { renderPreview(); wrap.style.display = ""; $("btn-preview-toggle").textContent = "Vorschau ausblenden"; }
+}
+function refreshPreviewIfOpen() {
+  const wrap = $("preview-wrap");
+  if (wrap.style.display !== "none" && wrap.innerHTML !== "") renderPreview();
+}
+function renderPreview() {
+  const v = currentVorlage();
+  const chosen = recipients.filter((r) => selectedIds.has(r.id));
+  const wrap = $("preview-wrap");
+  if (!v || !chosen.length) { wrap.innerHTML = "<p class='muted'>Wähle eine Vorlage und mindestens einen Empfänger.</p>"; return; }
+  const keys = (v.ersetzbar || []).length ? v.ersetzbar : ["VORNAME", "NACHNAME"];
+  let html = "<table class='preview'><thead><tr><th>Empfänger</th>" + keys.map((k) => `<th>{{${esc(k)}}}</th>`).join("") + "</tr></thead><tbody>";
+  chosen.slice(0, 50).forEach((emp) => {
+    const w = buildWerte(emp);
+    html += `<tr><td>${esc(emp.vorname)} ${esc(emp.nachname)}</td>` +
+      keys.map((k) => {
+        const isAuto = PLATZHALTER_MAP[k] && PLATZHALTER_MAP[k].quelle === "auto";
+        const empty = !(w[k] && String(w[k]).trim());
+        return `<td class="${empty && !isAuto ? "missing" : ""}">${esc(w[k] || "")}</td>`;
+      }).join("") + "</tr>";
+  });
+  html += "</tbody></table>";
+  if (chosen.length > 50) html += `<p class='muted' style='margin-top:8px;'>… und ${chosen.length - 50} weitere.</p>`;
+  wrap.innerHTML = html;
+}
+
+// ── Erzeugen ──────────────────────────────────────────────────────────────────
+async function erzeugen() {
+  const v = currentVorlage();
+  const chosen = recipients.filter((r) => selectedIds.has(r.id));
+  const statusEl = $("erzeugen-status");
+  if (!v) { statusEl.textContent = "Keine Vorlage gewählt."; return; }
+  if (!chosen.length) { statusEl.textContent = "Keine Empfänger gewählt."; return; }
+  $("btn-erzeugen").disabled = true;
+  statusEl.textContent = "Lade Vorlage…";
+  try {
+    const ab = await gatewayFileGet(v.fileId);
+    const usedNames = new Set();
+    const datensaetze = chosen.map((emp) => {
+      let base = `${sanitizeFilename(v.name)}_${sanitizeFilename(emp.nachname)}_${sanitizeFilename(emp.vorname)}`;
+      let name = base + ".docx", i = 2;
+      while (usedNames.has(name)) name = `${base}_${i++}.docx`;
+      usedNames.add(name);
+      return { dateiName: name, werte: buildWerte(emp) };
+    });
+    const zipBlob = await DocxFill.buildZip(ab, datensaetze, (done, total) => {
+      statusEl.textContent = `Erzeuge… ${done}/${total}`;
+    });
+    downloadBlob(zipBlob, `${sanitizeFilename(v.name)}_Dokumente.zip`);
+    statusEl.textContent = `✓ ${chosen.length} Dokument(e) erzeugt.`;
+  } catch (e) {
+    statusEl.textContent = "";
+    alert(e.message || "Erzeugen fehlgeschlagen.");
+  } finally {
+    $("btn-erzeugen").disabled = false;
+  }
+}
+
+// ── Changelog / Version ───────────────────────────────────────────────────────
+function renderVersionBadges() {
+  const v = "v" + APP_VERSION;
+  const vb = $("version-badge"); if (vb) vb.textContent = v;
+  const vb2 = $("version-badge-2"); if (vb2) vb2.textContent = v;
+}
+function renderChangelog() {
+  const wrap = $("changelog-list");
+  if (!wrap) return;
+  wrap.innerHTML = (APP_CHANGELOG || []).map((entry) => `
+    <div class="changelog-version">
+      <h4>Version ${esc(entry.version)}</h4>
+      ${(entry.groups || []).map((g) => `
+        <div class="changelog-group">
+          <div class="cg-title">${esc(g.title)}</div>
+          <ul>${(g.items || []).map((it) => `<li>${esc(it)}</li>`).join("")}</ul>
+        </div>`).join("")}
+    </div>`).join("");
+}
