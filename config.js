@@ -1,7 +1,7 @@
 // Dokumentenvorlagen — zentrales Serienbrief-/Vorlagen-Tool.
 // Vanilla JS, kein Build-Step. Muster übernommen von E:\Trainerdaten + E:\TrainerCheckliste.
 
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.2";
 
 // ─── Zentraler Login-Gateway (ToolsUebersicht) ────────────────────────────────
 // Gleiches Token-Muster wie alle Gateway-Apps: Login-Token liegt im localStorage
@@ -54,6 +54,17 @@ const PLATZHALTER_FELDER = [
 const PLATZHALTER_MAP = Object.fromEntries(PLATZHALTER_FELDER.map(f => [f.key, f]));
 
 const APP_CHANGELOG = [
+  {
+    version: "1.2",
+    groups: [
+      {
+        title: "Adresse & Bankverbindung sofort da",
+        items: [
+          "Ist der Trainerdaten-Zugriff einmal verbunden, wird beim Öffnen automatisch diese Datenquelle verwendet — Straße, PLZ/Ort und Bankverbindung sind sofort verfügbar, ohne die Quelle manuell umschalten zu müssen."
+        ]
+      }
+    ]
+  },
   {
     version: "1.1",
     groups: [

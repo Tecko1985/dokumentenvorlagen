@@ -83,6 +83,11 @@ async function init() {
   $("td-username").value = (webdavConfig && webdavConfig.username) || WEBDAV_DEFAULT_USERNAME;
   updateTrainerdatenConnectionUi();
 
+  // Bei bestehender Trainerdaten-Verbindung diese Quelle vorwählen, damit Adresse &
+  // Bankverbindung sofort geladen werden. Sonst zeigt die Default-Quelle „Trainerprofil"
+  // die Adressfelder als fehlend (rot) an, obwohl die Verbindung längst steht.
+  if (webdavConfig && webdavConfig.password) $("quelle-trainerdaten").checked = true;
+
   try {
     const loaded = await gatewayLoadCatalog();
     if (loaded && Array.isArray(loaded.vorlagen)) catalog = loaded;
