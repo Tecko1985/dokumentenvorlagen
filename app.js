@@ -60,6 +60,7 @@ document.addEventListener("DOMContentLoaded", init);
 async function init() {
   renderVersionBadges();
   renderChangelog();
+  renderPlatzhalterReferenz();
   wireStaticEvents();
 
   if (!getSessionToken()) { show("app-connect-screen", true); return; }
@@ -135,6 +136,63 @@ function wireStaticEvents() {
 function switchTab(tab) {
   document.querySelectorAll("nav button[data-tab]").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
   document.querySelectorAll(".tab-section").forEach((s) => s.classList.toggle("active", s.id === "tab-" + tab));
+}
+
+// ── Platzhalter-Referenz (Vorlagen-Tab) ───────────────────────────────────────
+// Statische, klickbare Übersicht aller bekannten Platzhalter — nach Datenquelle
+// gruppiert. Klick kopiert {{KEY}} in die Zwischenablage, damit man ihn im Word
+// am Stück einfügen kann (verhindert versehentlich gesplittete Runs).
+const QUELLE_LABEL = {
+  profil: "Aus dem Trainerprofil — immer verfügbar",
+  trainerdaten: "Aus den Trainerdaten — nur mit Admin-Datenzugriff (inkl. IBAN)",
+  auto: "Automatisch vom Tool gesetzt"
+};
+
+function renderPlatzhalterReferenz() {
+  const wrap = $("platzhalter-referenz");
+  if (!wrap) return;
+  wrap.innerHTML = ["profil", "trainerdaten", "auto"].map((q) => {
+    const felder = PLATZHALTER_FELDER.filter((f) => f.quelle === q);
+    if (!felder.length) return "";
+    const chips = felder.map((f) =>
+      `<button type="button" class="field-chip ${f.quelle} copyable" data-ph="${esc(f.key)}" title="${esc(f.label)} — klicken zum Kopieren"><span class="chip-key">{{${esc(f.key)}}}</span> <span class="chip-label">${esc(f.label)}</span></button>`
+    ).join("");
+    return `<div class="ph-group">
+      <div class="ph-group-title">${esc(QUELLE_LABEL[q] || q)}</div>
+      <div>${chips}</div>
+    </div>`;
+  }).join("");
+  wrap.querySelectorAll("button[data-ph]").forEach((btn) =>
+    btn.addEventListener("click", () => copyPlatzhalter(btn)));
+}
+
+async function copyPlatzhalter(btn) {
+  const text = "{{" + btn.dataset.ph + "}}";
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch (_) {
+    // Fallback für Kontexte ohne Clipboard-API (z. B. unsicherer Origin).
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+    } catch (__) { ok = false; }
+  }
+  if (!ok) return;
+  if (btn._copyTimer) { clearTimeout(btn._copyTimer); btn.classList.remove("copied"); }
+  const keyEl = btn.querySelector(".chip-key");
+  const orig = keyEl ? keyEl.textContent : null;
+  btn.classList.add("copied");
+  if (keyEl) keyEl.textContent = "✓ kopiert";
+  btn._copyTimer = setTimeout(() => {
+    btn.classList.remove("copied");
+    if (keyEl && orig != null) keyEl.textContent = orig;
+    btn._copyTimer = null;
+  }, 1100);
 }
 
 // ── Vorlagen-Verwaltung ───────────────────────────────────────────────────────

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Dokumentenvorlagen</title>
 <meta name="theme-color" content="#1a56a0" />
-<link rel="stylesheet" href="style.css?v=1.0" />
+<link rel="stylesheet" href="style.css?v=1.1" />
 </head>
 <body>
 
@@ -128,11 +128,21 @@
     <!-- ===== TAB: Vorlagen ===== -->
     <section class="tab-section" id="tab-vorlagen">
       <div class="card">
+        <h2>Verfügbare Platzhalter</h2>
+        <p class="muted" style="margin-bottom:16px; line-height:1.5;">
+          Diese Felder kannst du in einer Word-Vorlage als <code>{{PLATZHALTER}}</code> verwenden.
+          <strong>Klick auf einen Platzhalter kopiert ihn</strong> — dann im Word an der gewünschten
+          Stelle einfügen (am sichersten <em>am Stück</em>; nicht mitten drin die Formatierung
+          wechseln, sonst wird er nicht erkannt).
+        </p>
+        <div id="platzhalter-referenz"></div>
+      </div>
+
+      <div class="card">
         <h2>Neue Vorlage hochladen</h2>
         <p class="muted" style="margin-bottom:14px; line-height:1.5;">
-          Eine Word-Datei (.docx) mit Platzhaltern im Text, z. B. <code>{{VORNAME}} {{NACHNAME}}</code>,
-          <code>{{STRASSE}}</code>, <code>{{IBAN}}</code>. Tipp: Platzhalter im Word <em>am Stück</em>
-          eintippen (nicht mitten drin die Formatierung wechseln), sonst wird er nicht erkannt.
+          Wähle deine fertige Word-Datei (.docx) mit den Platzhaltern aus der Übersicht oben.
+          Beim Hochladen erkennt das Tool automatisch, welche Platzhalter enthalten sind.
         </p>
         <div class="form-grid">
           <div class="form-field"><label>Name der Vorlage</label><input type="text" id="tpl-new-name" placeholder="z. B. Trainervertrag" /></div>
@@ -188,9 +198,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="config.js?v=1.0"></script>
-<script src="db.js?v=1.0"></script>
-<script src="docx-fill.js?v=1.0"></script>
-<script src="app.js?v=1.0"></script>
+<script src="config.js?v=1.1"></script>
+<script src="db.js?v=1.1"></script>
+<script src="docx-fill.js?v=1.1"></script>
+<script src="app.js?v=1.1"></script>
 </body>
 </html>

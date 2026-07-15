@@ -1,7 +1,7 @@
 // Dokumentenvorlagen — zentrales Serienbrief-/Vorlagen-Tool.
 // Vanilla JS, kein Build-Step. Muster übernommen von E:\Trainerdaten + E:\TrainerCheckliste.
 
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.1";
 
 // ─── Zentraler Login-Gateway (ToolsUebersicht) ────────────────────────────────
 // Gleiches Token-Muster wie alle Gateway-Apps: Login-Token liegt im localStorage
@@ -54,6 +54,18 @@ const PLATZHALTER_FELDER = [
 const PLATZHALTER_MAP = Object.fromEntries(PLATZHALTER_FELDER.map(f => [f.key, f]));
 
 const APP_CHANGELOG = [
+  {
+    version: "1.1",
+    groups: [
+      {
+        title: "Platzhalter-Referenz",
+        items: [
+          "Im Tab „Vorlagen“ gibt es jetzt eine Übersicht aller verfügbaren Platzhalter, gruppiert nach Datenquelle (Trainerprofil, Trainerdaten, automatisch).",
+          "Ein Klick auf einen Platzhalter kopiert ihn in die Zwischenablage — so lässt er sich direkt in die Word-Vorlage einfügen."
+        ]
+      }
+    ]
+  },
   {
     version: "1.0",
     groups: [

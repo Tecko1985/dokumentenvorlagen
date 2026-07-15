@@ -157,6 +157,25 @@ button.btn:disabled { opacity: 0.5; cursor: default; }
 .field-chip.auto { background: var(--gray); color: var(--muted); }
 .field-chip.unbekannt { background: var(--red-light); color: var(--red); border-color: #f0b7b0; }
 
+/* Platzhalter-Referenz (klickbar, Vorlagen-Tab) */
+.ph-group { margin-bottom: 16px; }
+.ph-group:last-child { margin-bottom: 0; }
+.ph-group-title {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.field-chip.copyable {
+  cursor: pointer; font-family: inherit; text-align: left;
+  padding: 5px 11px; margin: 0 8px 8px 0;
+  display: inline-flex; align-items: baseline; gap: 7px;
+  transition: transform 0.08s ease, box-shadow 0.12s ease;
+}
+.field-chip.copyable:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.13); transform: translateY(-1px); }
+.field-chip.copyable:active { transform: none; box-shadow: none; }
+.field-chip .chip-key { font-family: "Consolas", "SF Mono", monospace; font-weight: 700; }
+.field-chip .chip-label { font-weight: 500; opacity: 0.85; font-size: 11px; }
+.field-chip.copied { background: var(--green-light) !important; color: var(--green) !important; border-color: #a8d8ba !important; }
+
 /* Empfängerliste */
 .recipient-list { max-height: 340px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
 .recipient-row {
