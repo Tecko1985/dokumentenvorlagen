@@ -77,11 +77,15 @@ const DocxFill = (() => {
   }
 
   // Ersetzt {{KEY}} in einem XML-String durch die (XML-escapten) Werte aus `werte`.
+  // Replacer als FUNKTION, nicht als String: sonst interpretiert String.replace
+  // $-Sequenzen im Wert ($&, $$, $1 …) als Ersetzungsmuster — ein Bankname wie
+  // "Bank $& Co" würde still zu "Bank {{BANKNAME}}amp; Co" verstümmelt
+  // (Trainerdatens Original nutzt split/join und war nie betroffen).
   function _replaceInXml(xml, werte) {
     let out = xml;
     for (const [key, val] of Object.entries(werte)) {
       const re = new RegExp("\\{\\{\\s*" + key + "\\s*\\}\\}", "g");
-      out = out.replace(re, escXml(val));
+      out = out.replace(re, () => escXml(val));
     }
     return out;
   }
