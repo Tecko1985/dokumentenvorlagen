@@ -1,7 +1,7 @@
 // Dokumentenvorlagen — zentrales Serienbrief-/Vorlagen-Tool.
 // Vanilla JS, kein Build-Step. Muster übernommen von E:\Trainerdaten + E:\TrainerCheckliste.
 
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.0";
 
 // ─── Zentraler Login-Gateway (ToolsUebersicht) ────────────────────────────────
 // Gleiches Token-Muster wie alle Gateway-Apps: Login-Token liegt im localStorage
@@ -55,40 +55,6 @@ const PLATZHALTER_MAP = Object.fromEntries(PLATZHALTER_FELDER.map(f => [f.key, f
 
 const APP_CHANGELOG = [
   {
-    version: "1.3",
-    groups: [
-      {
-        title: "Fehlerbehebung",
-        items: [
-          "Platzhalter-Werte mit Dollarzeichen-Folgen (z. B. „$&“ in einem Banknamen) wurden beim Befüllen still verstümmelt — jetzt landen alle Werte exakt so im Dokument, wie sie in den Daten stehen."
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.2",
-    groups: [
-      {
-        title: "Adresse & Bankverbindung sofort da",
-        items: [
-          "Ist der Trainerdaten-Zugriff einmal verbunden, wird beim Öffnen automatisch diese Datenquelle verwendet — Straße, PLZ/Ort und Bankverbindung sind sofort verfügbar, ohne die Quelle manuell umschalten zu müssen."
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.1",
-    groups: [
-      {
-        title: "Platzhalter-Referenz",
-        items: [
-          "Im Tab „Vorlagen“ gibt es jetzt eine Übersicht aller verfügbaren Platzhalter, gruppiert nach Datenquelle (Trainerprofil, Trainerdaten, automatisch).",
-          "Ein Klick auf einen Platzhalter kopiert ihn in die Zwischenablage — so lässt er sich direkt in die Word-Vorlage einfügen."
-        ]
-      }
-    ]
-  },
-  {
     version: "1.0",
     groups: [
       {
@@ -100,6 +66,19 @@ const APP_CHANGELOG = [
           "Empfänger wahlweise aus dem zentralen Trainerprofil (Name, Lizenz, Mannschaft) oder — mit Admin-Datenzugriff — aus den Trainerdaten inklusive Adresse und Bankverbindung.",
           "Bankdaten bleiben im Browser: die ausgefüllten Dokumente werden lokal erzeugt und heruntergeladen, nie in der Cloud gespeichert.",
           "Für originalgetreue PDFs liegt das Skript docx-zu-pdf.ps1 bei, das einen Ordner voller erzeugter .docx lokal über Microsoft Word als PDF exportiert."
+        ]
+      },
+      {
+        title: "Platzhalter-Referenz",
+        items: [
+          "Im Tab „Vorlagen“ gibt es eine Übersicht aller verfügbaren Platzhalter, gruppiert nach Datenquelle (Trainerprofil, Trainerdaten, automatisch).",
+          "Ein Klick auf einen Platzhalter kopiert ihn in die Zwischenablage — so lässt er sich direkt in die Word-Vorlage einfügen."
+        ]
+      },
+      {
+        title: "Adresse & Bankverbindung sofort da",
+        items: [
+          "Ist der Trainerdaten-Zugriff einmal verbunden, wird beim Öffnen automatisch diese Datenquelle verwendet — Straße, PLZ/Ort und Bankverbindung sind sofort verfügbar, ohne die Quelle manuell umschalten zu müssen."
         ]
       }
     ]
