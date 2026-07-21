@@ -112,7 +112,7 @@ function wireStaticEvents() {
   });
   // Versionsbadge -> Einstellungen/Changelog
   const vb = $("version-badge");
-  if (vb) vb.addEventListener("click", () => { switchTab("einstellungen"); $("changelog-list").scrollIntoView({ behavior: "smooth" }); });
+  if (vb) vb.addEventListener("click", () => { switchTab("info"); });
 
   // Vorlagen-Upload
   $("btn-tpl-file").addEventListener("click", () => $("tpl-file-input").click());

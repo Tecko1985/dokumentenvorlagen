@@ -37,6 +37,7 @@
   <nav>
     <button data-tab="erstellen" class="active">Dokumente erstellen</button>
     <button data-tab="vorlagen">Vorlagen</button>
+    <button data-tab="info">Info</button>
     <button data-tab="einstellungen" style="margin-left:auto;">Einstellungen</button>
   </nav>
 
@@ -167,6 +168,18 @@
       </div>
     </section>
 
+    <!-- ---------- Info ---------- -->
+    <section class="tab-section" id="tab-info">
+      <div class="card">
+        <h2>Über die Dokumentenvorlagen <span class="version-badge-dark" id="version-badge-2"></span></h2>
+        <p class="muted">Serienbriefe aus .docx-Vorlagen mit Platzhaltern erzeugen.</p>
+      </div>
+      <div class="card">
+        <h2>Änderungen</h2>
+        <div id="changelog-list"></div>
+      </div>
+    </section>
+
     <!-- ===== TAB: Einstellungen ===== -->
     <section class="tab-section" id="tab-einstellungen">
       <div class="card">
@@ -188,10 +201,6 @@
           <a class="btn secondary small" href="docx-zu-pdf.ps1" download>Skript herunterladen (docx-zu-pdf.ps1)</a>
         </div>
       </div>
-      <div class="card">
-        <h3>Versionshistorie <span class="version-badge-dark" id="version-badge-2"></span></h3>
-        <div id="changelog-list"></div>
-      </div>
     </section>
 
   </main>
@@ -201,6 +210,6 @@
 <script src="config.js?v=1.0"></script>
 <script src="db.js?v=1.0"></script>
 <script src="docx-fill.js?v=1.0"></script>
-<script src="app.js?v=1.0"></script>
+<script src="app.js?v=1.1"></script>
 </body>
 </html>
