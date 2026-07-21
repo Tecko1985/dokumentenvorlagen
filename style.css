@@ -213,3 +213,8 @@ table.preview td.missing { background: var(--red-light); color: var(--red); }
 .changelog-group .cg-title { font-weight: 600; font-size: 13px; }
 .changelog-group ul { margin: 4px 0 0 18px; }
 .changelog-group li { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 3px; }
+
+/* Rechte Nav-Gruppe (Einstellungen/Verwaltung + Info). Das margin haengt
+   am Wrapper, damit die Gruppe rechts bleibt, auch wenn einzelne Buttons
+   fuer Nicht-Admins ausgeblendet sind. */
+nav .nav-right { margin-left: auto; display: flex; gap: inherit; }
