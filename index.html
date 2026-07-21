@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Dokumentenvorlagen</title>
 <meta name="theme-color" content="#1a56a0" />
-<link rel="stylesheet" href="style.css?v=1.1" />
+<link rel="stylesheet" href="style.css?v=1.2" />
 </head>
 <body>
 
@@ -97,6 +97,38 @@
           <p class="muted" id="td-connected-hint" style="display:none; color:var(--green); font-weight:600;"></p>
 
           <div id="recipient-area" style="margin-top:16px;">
+            <div class="filter-row" id="recipient-filters">
+              <div class="filter-field">
+                <label for="filter-mannschaft">Mannschaft</label>
+                <select id="filter-mannschaft"><option value="">Alle</option></select>
+              </div>
+              <div class="filter-field">
+                <label for="filter-lizenz">Lizenz</label>
+                <select id="filter-lizenz"><option value="">Alle</option></select>
+              </div>
+              <div class="filter-field filter-status-only">
+                <label for="filter-vertrag">Vertrag</label>
+                <select id="filter-vertrag">
+                  <option value="">Alle</option>
+                  <option value="keiner">Noch keiner bereitgestellt</option>
+                  <option value="offen">Bereitgestellt, nicht unterschrieben</option>
+                  <option value="unterschrieben">Unterschrieben</option>
+                </select>
+              </div>
+              <div class="filter-field filter-status-only">
+                <label for="filter-fz">Führungszeugnis</label>
+                <select id="filter-fz">
+                  <option value="">Alle</option>
+                  <option value="fehlt">Noch keins hinterlegt</option>
+                  <option value="vorhanden">Bereits hinterlegt</option>
+                </select>
+              </div>
+              <button type="button" class="btn secondary small" id="btn-filter-reset">Filter zurücksetzen</button>
+            </div>
+            <p class="muted" id="filter-status-hint" style="display:none; font-size:12px; margin-bottom:10px;">
+              Vertrags- und Führungszeugnis-Status gibt es nur bei der Quelle
+              <strong>Trainerdaten</strong> — das Trainerprofil kennt diese Felder nicht.
+            </p>
             <div class="btn-row" style="justify-content:flex-start; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
               <div class="form-field" style="flex:1 1 240px; margin-bottom:0;">
                 <input type="text" id="recipient-search" placeholder="Suche nach Name…" autocomplete="off" />
@@ -209,9 +241,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="config.js?v=1.0"></script>
+<script src="config.js?v=1.1"></script>
 <script src="db.js?v=1.0"></script>
 <script src="docx-fill.js?v=1.0"></script>
-<script src="app.js?v=1.1"></script>
+<script src="app.js?v=1.2"></script>
 </body>
 </html>

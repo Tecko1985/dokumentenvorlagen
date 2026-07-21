@@ -80,6 +80,18 @@ const APP_CHANGELOG = [
         items: [
           "Ist der Trainerdaten-Zugriff einmal verbunden, wird beim Öffnen automatisch diese Datenquelle verwendet — Straße, PLZ/Ort und Bankverbindung sind sofort verfügbar, ohne die Quelle manuell umschalten zu müssen."
         ]
+      },
+      {
+        title: "Empfänger filtern",
+        items: [
+          "Über der Empfängerliste stehen vier Filter: Mannschaft, Lizenz, Vertrag und Führungszeugnis — damit lässt sich eine Vorlage gezielt nur an die Personen ausgeben, die sie wirklich brauchen.",
+          "Beispiel Übungsleitervertrag: Filter „Vertrag = Noch keiner bereitgestellt“ zeigt genau die, die noch keinen bekommen haben.",
+          "Beispiel Führungszeugnis: Filter „Noch keins hinterlegt“ überspringt alle, die ihr erweitertes Führungszeugnis bereits eingereicht haben.",
+          "Filter lassen sich kombinieren und zusammen mit dem Suchfeld verwenden; „Alle“ wählt dann nur die gerade angezeigten Empfänger aus.",
+          "Mannschaft und Lizenz werden automatisch aus den geladenen Daten befüllt, inklusive der Auswahl „ohne Mannschaft“ bzw. „ohne Lizenz“.",
+          "Vertrags- und Führungszeugnis-Status stammen aus den Trainerdaten und stehen deshalb nur bei der Datenquelle „Trainerdaten“ zur Verfügung.",
+          "Bleiben ausgewählte Empfänger durch einen Filter ausgeblendet, weist die Zeile unter der Liste ausdrücklich darauf hin — sie bekommen trotzdem ein Dokument."
+        ]
       }
     ]
   }

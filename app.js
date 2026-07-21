@@ -87,6 +87,7 @@ async function init() {
   // Bankverbindung sofort geladen werden. Sonst zeigt die Default-Quelle „Trainerprofil"
   // die Adressfelder als fehlend (rot) an, obwohl die Verbindung längst steht.
   if (webdavConfig && webdavConfig.password) $("quelle-trainerdaten").checked = true;
+  updateFilterVisibility();
 
   try {
     const loaded = await gatewayLoadCatalog();
@@ -129,7 +130,11 @@ function wireStaticEvents() {
   $("btn-td-disconnect").addEventListener("click", trainerdatenDisconnect);
 
   // Empfänger
-  $("recipient-search").addEventListener("input", renderRecipientList);
+  $("recipient-search").addEventListener("input", () => { renderRecipientList(); updateCount(); });
+  ["filter-mannschaft", "filter-lizenz", "filter-vertrag", "filter-fz"].forEach((id) =>
+    $(id).addEventListener("change", () => { renderRecipientList(); updateCount(); }));
+  $("btn-filter-reset").addEventListener("click", resetFilters);
+  // „Alle" wählt bewusst nur die gerade sichtbaren (= gefilterten) Empfänger aus.
   $("btn-recipients-all").addEventListener("click", () => { visibleRecipients().forEach((r) => selectedIds.add(r.id)); renderRecipientList(); updateCount(); });
   $("btn-recipients-none").addEventListener("click", () => { selectedIds.clear(); renderRecipientList(); updateCount(); });
 
@@ -392,6 +397,7 @@ function onTemplateSelected() {
 
 function onQuelleChanged() {
   const quelle = currentQuelle();
+  updateFilterVisibility();
   if (quelle === "trainerdaten" && !webdavConfig) {
     show("td-connect", true);
     show("td-connected-hint", false);
@@ -415,6 +421,7 @@ async function trainerdatenConnect() {
     $("td-password").value = "";
     show("td-connect", false);
     updateTrainerdatenConnectionUi();
+    updateFilterVisibility();
     await loadRecipients();
   } catch (e) {
     bannerError("td-connect-error", e.message || "Verbindung fehlgeschlagen.");
@@ -459,7 +466,7 @@ async function loadRecipients() {
           lizenz: p.lizenz || "", mannschaften: p.mannschaften || []
         }));
     } else {
-      if (!webdavConfig) { show("td-connect", true); $("recipient-list").innerHTML = ""; return; }
+      if (!webdavConfig) { show("td-connect", true); $("recipient-list").innerHTML = ""; renderFilterOptions(); return; }
       const td = await fetchTrainerdaten(webdavConfig);
       if (!profiles.length) { try { profiles = await fetchTrainerProfiles(); } catch (_) {} }
       recipients = td
@@ -474,25 +481,110 @@ async function loadRecipients() {
             iban: t.iban || "", bankname: t.bankname || "", bic: t.bic || "",
             lizenz: t.lizenz || (prof && prof.lizenz) || "",
             pauschale: t.pauschale != null ? t.pauschale : "",
-            mannschaften: (prof && prof.mannschaften) || []
+            mannschaften: (prof && prof.mannschaften) || [],
+            // Status-Felder für die Filter — nur in trainerdaten.json vorhanden,
+            // nicht im Gateway-Trainerprofil (siehe filterStatusVerfuegbar()).
+            fuehrungszeugnisAm: t.fuehrungszeugnisEingereichtAm || "",
+            vertragBereitgestelltAm: t.vertragPdfBereitgestelltAm || "",
+            vertragUnterschriebenAm: t.vertragUnterschriebenAm || ""
           };
         });
     }
     recipients.sort((a, b) => (a.nachname || "").localeCompare(b.nachname || "", "de") || (a.vorname || "").localeCompare(b.vorname || "", "de"));
   } catch (e) {
     $("recipient-list").innerHTML = "";
+    renderFilterOptions();
     bannerError("recipient-error", e.message || "Empfänger konnten nicht geladen werden.");
     return;
   }
+  renderFilterOptions();
   renderRecipientList();
   updateCount();
   refreshPreviewIfOpen();
 }
 
+// ── Filter ────────────────────────────────────────────────────────────────────
+// Die Status-Filter (Vertrag/Führungszeugnis) speisen sich aus trainerdaten.json.
+// Das Gateway-Trainerprofil (Quelle „Trainerprofil") liefert nur Name/Lizenz/
+// Mannschaft — dort werden sie ausgeblendet UND zurückgesetzt, damit kein
+// unsichtbar gesetzter Wert die Liste heimlich leert.
+function filterStatusVerfuegbar() {
+  return currentQuelle() === "trainerdaten";
+}
+
+const OHNE = "__ohne__"; // Sentinel für „ohne Angabe" (kollidiert mit keinem echten Wert)
+
+function updateFilterVisibility() {
+  const on = filterStatusVerfuegbar();
+  document.querySelectorAll(".filter-status-only").forEach((el) => { el.style.display = on ? "" : "none"; });
+  show("filter-status-hint", !on);
+  if (!on) { $("filter-vertrag").value = ""; $("filter-fz").value = ""; }
+}
+
+// Mannschafts-/Lizenz-Auswahl aus den tatsächlich geladenen Empfängern aufbauen.
+// Eine zuvor gewählte Option bleibt erhalten, solange es sie noch gibt.
+function renderFilterOptions() {
+  const mannschaften = new Set();
+  const lizenzen = new Set();
+  let ohneMannschaft = false, ohneLizenz = false;
+  recipients.forEach((r) => {
+    const ms = (r.mannschaften || []).filter((m) => String(m || "").trim());
+    if (ms.length) ms.forEach((m) => mannschaften.add(String(m).trim()));
+    else ohneMannschaft = true;
+    if (String(r.lizenz || "").trim()) lizenzen.add(String(r.lizenz).trim());
+    else ohneLizenz = true;
+  });
+  fillSelect("filter-mannschaft", [...mannschaften].sort((a, b) => a.localeCompare(b, "de")), ohneMannschaft, "ohne Mannschaft");
+  fillSelect("filter-lizenz", [...lizenzen].sort((a, b) => a.localeCompare(b, "de")), ohneLizenz, "ohne Lizenz");
+}
+
+function fillSelect(id, werte, mitOhne, ohneLabel) {
+  const sel = $(id);
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = `<option value="">Alle</option>` +
+    werte.map((w) => `<option value="${esc(w)}">${esc(w)}</option>`).join("") +
+    (mitOhne ? `<option value="${OHNE}">(${esc(ohneLabel)})</option>` : "");
+  sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "";
+}
+
+function resetFilters() {
+  ["filter-mannschaft", "filter-lizenz", "filter-vertrag", "filter-fz"].forEach((id) => { if ($(id)) $(id).value = ""; });
+  $("recipient-search").value = "";
+  renderRecipientList();
+  updateCount();
+}
+
+function matchesFilters(r) {
+  const mann = val("filter-mannschaft");
+  if (mann) {
+    const ms = (r.mannschaften || []).filter((m) => String(m || "").trim());
+    if (mann === OHNE ? ms.length > 0 : !ms.some((m) => String(m).trim() === mann)) return false;
+  }
+  const liz = val("filter-lizenz");
+  if (liz) {
+    const l = String(r.lizenz || "").trim();
+    if (liz === OHNE ? !!l : l !== liz) return false;
+  }
+  if (filterStatusVerfuegbar()) {
+    const vertrag = val("filter-vertrag");
+    if (vertrag) {
+      const bereit = !!r.vertragBereitgestelltAm, unter = !!r.vertragUnterschriebenAm;
+      if (vertrag === "keiner" && (bereit || unter)) return false;
+      if (vertrag === "offen" && !(bereit && !unter)) return false;
+      if (vertrag === "unterschrieben" && !unter) return false;
+    }
+    const fz = val("filter-fz");
+    if (fz === "fehlt" && r.fuehrungszeugnisAm) return false;
+    if (fz === "vorhanden" && !r.fuehrungszeugnisAm) return false;
+  }
+  return true;
+}
+
 function visibleRecipients() {
   const q = normName(val("recipient-search"));
-  if (!q) return recipients;
-  return recipients.filter((r) => (`${r.vorname} ${r.nachname}`).toLowerCase().includes(q));
+  return recipients.filter((r) =>
+    matchesFilters(r) && (!q || (`${r.vorname} ${r.nachname}`).toLowerCase().includes(q)));
 }
 
 // Welche der (ersetzbaren) Platzhalter der aktuellen Vorlage kann dieser Empfänger
@@ -529,7 +621,18 @@ function renderRecipientList() {
 
 function updateCount() {
   const n = selectedIds.size;
-  $("recipient-count").textContent = n ? `${n} Empfänger ausgewählt.` : "Keine Empfänger ausgewählt.";
+  const sichtbar = visibleRecipients();
+  const sichtbarIds = new Set(sichtbar.map((r) => r.id));
+  const versteckt = [...selectedIds].filter((id) => !sichtbarIds.has(id)).length;
+  let text = n ? `${n} Empfänger ausgewählt.` : "Keine Empfänger ausgewählt.";
+  if (sichtbar.length !== recipients.length) text += ` ${sichtbar.length} von ${recipients.length} angezeigt.`;
+  // Filter blenden nur die Anzeige aus, sie heben keine Auswahl auf — sonst gingen
+  // beim Umschalten still Empfänger verloren. Dafür muss hier sichtbar stehen, dass
+  // ausgeblendete Ausgewählte trotzdem ein Dokument bekommen.
+  if (versteckt) text += ` ⚠️ ${versteckt} davon ausgeblendet — werden trotzdem erzeugt.`;
+  const el = $("recipient-count");
+  el.textContent = text;
+  el.classList.toggle("warn", versteckt > 0);
 }
 
 // ── Werte-Aufbau ──────────────────────────────────────────────────────────────

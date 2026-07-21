@@ -176,6 +176,20 @@ button.btn:disabled { opacity: 0.5; cursor: default; }
 .field-chip .chip-label { font-weight: 500; opacity: 0.85; font-size: 11px; }
 .field-chip.copied { background: var(--green-light) !important; color: var(--green) !important; border-color: #a8d8ba !important; }
 
+/* Empfänger-Filter */
+.filter-row {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 10px;
+}
+.filter-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 160px; min-width: 150px; }
+.filter-field label {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.filter-field select { width: 100%; }
+/* Der Reset-Button sitzt in derselben Zeile wie die Selects (align-items:flex-end),
+   soll aber nicht mitwachsen. */
+.filter-row .btn { flex: 0 0 auto; }
+
 /* Empfängerliste */
 .recipient-list { max-height: 340px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
 .recipient-row {
@@ -188,6 +202,7 @@ button.btn:disabled { opacity: 0.5; cursor: default; }
 .recipient-row .r-name { font-weight: 600; }
 .recipient-row .r-meta { color: var(--muted); font-size: 12px; margin-left: auto; text-align: right; }
 .recipient-row.missing .r-meta { color: var(--red); }
+#recipient-count.warn { color: var(--red); font-weight: 600; }
 
 /* Vorlagen-Liste */
 .tpl-item {
