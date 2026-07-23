@@ -75,18 +75,22 @@ async function init() {
   show("app-main", true);
   show("app-connect-screen", false);
 
-  // Gespeicherten Admin-WebDAV-Zugang übernehmen (falls vorhanden).
+  // Trainerdaten-Zugriff hängt seit dem Rechte-Umbau am eigenen Konto
+  // (Bearbeiten-Recht für Trainerdaten), nicht mehr an einem gespeicherten
+  // App-Passwort. Einen früher gespeicherten Zugang (mit Passwort) aus
+  // IndexedDB entfernen (Hygiene) und das Recht still prüfen.
+  try { await FileStore.clearWebdavConfig(); } catch (_) {}
   try {
-    const saved = await FileStore.getWebdavConfig();
-    if (saved && saved.password) webdavConfig = saved;
-  } catch (_) {}
-  $("td-username").value = (webdavConfig && webdavConfig.username) || WEBDAV_DEFAULT_USERNAME;
+    if (getSessionToken() && (await checkTrainerdatenEditPermission())) {
+      webdavConfig = { url: TRAINERDATEN_WEBDAV_URL, proxyUrl: CORS_PROXY_DEFAULT_URL };
+    }
+  } catch (_) { /* kein Login/Netzfehler: Quelle bleibt aus, Hinweis kommt bei Auswahl */ }
   updateTrainerdatenConnectionUi();
 
-  // Bei bestehender Trainerdaten-Verbindung diese Quelle vorwählen, damit Adresse &
+  // Bei vorhandenem Trainerdaten-Zugriff diese Quelle vorwählen, damit Adresse &
   // Bankverbindung sofort geladen werden. Sonst zeigt die Default-Quelle „Trainerprofil"
-  // die Adressfelder als fehlend (rot) an, obwohl die Verbindung längst steht.
-  if (webdavConfig && webdavConfig.password) $("quelle-trainerdaten").checked = true;
+  // die Adressfelder als fehlend (rot) an, obwohl der Zugriff längst da ist.
+  if (webdavConfig) $("quelle-trainerdaten").checked = true;
   updateFilterVisibility();
 
   try {
@@ -127,7 +131,6 @@ function wireStaticEvents() {
 
   // Admin-Connect
   $("btn-td-connect").addEventListener("click", trainerdatenConnect);
-  $("btn-td-disconnect").addEventListener("click", trainerdatenDisconnect);
 
   // Empfänger
   $("recipient-search").addEventListener("input", () => { renderRecipientList(); updateCount(); });
@@ -407,45 +410,40 @@ function onQuelleChanged() {
   }
 }
 
+// Prüft das Bearbeiten-Recht des eigenen Kontos und aktiviert den Trainerdaten-
+// Zugriff — ersetzt die frühere App-Passwort-Eingabe (der CORS-Proxy erzwingt
+// dieselbe Prüfung serverseitig bei jedem Zugriff).
 async function trainerdatenConnect() {
   bannerError("td-connect-error", "");
-  const password = val("td-password");
-  const username = val("td-username").trim() || WEBDAV_DEFAULT_USERNAME;
-  if (!password) { bannerError("td-connect-error", "Bitte App-Passwort eingeben."); return; }
-  const cfg = { url: TRAINERDATEN_WEBDAV_URL, username, password, proxyUrl: CORS_PROXY_DEFAULT_URL };
-  $("btn-td-connect").disabled = true; $("btn-td-connect").textContent = "Verbinde…";
+  $("btn-td-connect").disabled = true; $("btn-td-connect").textContent = "Prüfe…";
   try {
+    if (!getSessionToken()) {
+      throw new NotLoggedInError("Bitte zuerst in der Tools-Übersicht anmelden (im selben Browser) und diese Seite neu laden.");
+    }
+    if (!(await checkTrainerdatenEditPermission())) {
+      throw new Error("Dein Konto hat kein Bearbeiten-Recht für Trainerdaten. Ein Admin kann es im Sichtbarkeits-Panel der Tools-Übersicht vergeben (Häkchen „bearbeiten“ bei der passenden Gruppe).");
+    }
+    const cfg = { url: TRAINERDATEN_WEBDAV_URL, proxyUrl: CORS_PROXY_DEFAULT_URL };
     await fetchTrainerdaten(cfg); // Test-Read
     webdavConfig = cfg;
-    await FileStore.setWebdavConfig(cfg);
-    $("td-password").value = "";
     show("td-connect", false);
     updateTrainerdatenConnectionUi();
     updateFilterVisibility();
     await loadRecipients();
   } catch (e) {
-    bannerError("td-connect-error", e.message || "Verbindung fehlgeschlagen.");
+    bannerError("td-connect-error", e.message || "Zugriffsprüfung fehlgeschlagen.");
   } finally {
-    $("btn-td-connect").disabled = false; $("btn-td-connect").textContent = "Verbinden";
+    $("btn-td-connect").disabled = false; $("btn-td-connect").textContent = "Zugriff prüfen";
   }
 }
 
-async function trainerdatenDisconnect() {
-  webdavConfig = null;
-  try { await FileStore.clearWebdavConfig(); } catch (_) {}
-  updateTrainerdatenConnectionUi();
-  // Falls gerade Trainerdaten-Quelle aktiv war -> zurück auf Profil.
-  if (currentQuelle() === "trainerdaten") { $("quelle-profil").checked = true; onQuelleChanged(); }
-}
-
 function updateTrainerdatenConnectionUi() {
-  const connected = !!(webdavConfig && webdavConfig.password);
+  const connected = !!webdavConfig;
   $("settings-td-status").textContent = connected
-    ? `Verbunden als „${webdavConfig.username}" (App-Passwort nur in diesem Browser gespeichert).`
-    : "Nicht verbunden.";
-  show("btn-td-disconnect", connected);
+    ? "Zugriff vorhanden — dein Konto hat das Bearbeiten-Recht für Trainerdaten."
+    : "Kein Zugriff — nötig ist das Bearbeiten-Recht für Trainerdaten (Sichtbarkeits-Panel der Tools-Übersicht).";
   const hint = $("td-connected-hint");
-  if (connected) { hint.textContent = "✓ Mit Trainerdaten verbunden — Adresse und Bankverbindung verfügbar."; show("td-connected-hint", true); }
+  if (connected) { hint.textContent = "✓ Trainerdaten verfügbar — Adresse und Bankverbindung können geladen werden."; show("td-connected-hint", true); }
   else show("td-connected-hint", false);
 }
 

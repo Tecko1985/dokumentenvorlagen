@@ -79,19 +79,16 @@
             <span><strong>Trainerdaten inkl. Adresse &amp; Bankverbindung</strong> — benötigt einmalig das WebDAV-App-Passwort.</span>
           </label>
 
-          <!-- Admin-Datenzugriff (App-Passwort) -->
+          <!-- Admin-Datenzugriff (Bearbeiten-Recht Trainerdaten) -->
           <div id="td-connect" class="subcard" style="display:none;">
             <p class="muted" style="margin-bottom:10px;">
-              Zugriff auf die Trainerdaten (inkl. IBAN). Das App-Passwort wird nur in diesem Browser
-              gespeichert, nie in der Cloud. Bankdaten verlassen deinen Rechner nicht.
+              Zugriff auf die Trainerdaten (inkl. IBAN) läuft über dein Tools-Übersicht-Konto — nötig ist das
+              Bearbeiten-Recht für Trainerdaten, ein App-Passwort gibt es nicht mehr. Bankdaten werden nur im
+              Browser verarbeitet und nie in der Cloud gespeichert.
             </p>
-            <div class="form-grid">
-              <div class="form-field"><label>Benutzername</label><input type="text" id="td-username" /></div>
-              <div class="form-field"><label>App-Passwort</label><input type="password" id="td-password" autocomplete="off" /></div>
-            </div>
             <p class="error-banner" id="td-connect-error"></p>
             <div class="btn-row" style="justify-content:flex-start;">
-              <button type="button" class="btn small" id="btn-td-connect">Verbinden</button>
+              <button type="button" class="btn small" id="btn-td-connect">Zugriff prüfen</button>
             </div>
           </div>
           <p class="muted" id="td-connected-hint" style="display:none; color:var(--green); font-weight:600;"></p>
@@ -218,9 +215,8 @@
     <section class="tab-section" id="tab-einstellungen">
       <div class="card">
         <h3>Trainerdaten-Zugriff</h3>
-        <p class="muted" id="settings-td-status" style="margin-bottom:10px;">Nicht verbunden.</p>
+        <p class="muted" id="settings-td-status" style="margin-bottom:10px;">Kein Zugriff.</p>
         <div class="btn-row" style="justify-content:flex-start;">
-          <button class="btn secondary small" id="btn-td-disconnect" style="display:none;">Verbindung trennen</button>
         </div>
       </div>
       <div class="card">
@@ -241,9 +237,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="config.js?v=1.2"></script>
-<script src="db.js?v=1.0"></script>
+<script src="config.js?v=1.3"></script>
+<script src="db.js?v=1.1"></script>
 <script src="docx-fill.js?v=1.0"></script>
-<script src="app.js?v=1.2"></script>
+<script src="app.js?v=1.3"></script>
 </body>
 </html>

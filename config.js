@@ -11,15 +11,15 @@ const GATEWAY_URL = "https://landingpage.michel-brunner.workers.dev";
 const GATEWAY_APP_ID = "dokumentenvorlagen";
 
 // ─── Admin-Datenzugriff auf Trainerdaten (inkl. IBAN) ─────────────────────────
-// Wie der Trainerdaten-Admin: das App-Passwort wird einmal eingegeben (nur in
-// IndexedDB gehalten, nie im Code) und trainerdaten.json read-only über denselben
-// CORS-Proxy gelesen (der prüft nur das Freigabe-Präfix, nicht den Dateinamen —
-// siehe cors-proxy-worker.js in Trainerdaten). Die IBAN bleibt im Browser des
-// Admins und läuft nie über das zentrale Gateway.
+// Wie der Trainerdaten-Admin seit dem Rechte-Umbau (2026-07-23): trainerdaten.json
+// wird read-only über den Trainerdaten-CORS-Proxy gelesen, der den ToolsUebersicht-
+// Login-Token verlangt und serverseitig das Bearbeiten-Recht für Trainerdaten
+// prüft (kein App-Passwort mehr im Client, Nextcloud-Zugang als Worker-Secret —
+// siehe cors-proxy-worker.js in Trainerdaten). Die IBAN bleibt im Browser und
+// läuft nie über das zentrale Gateway.
 const TRAINERDATEN_WEBDAV_URL =
   "https://nx88695.your-storageshare.de/remote.php/dav/files/admin/" +
   "05_Nachwuchsbereich/02_F%C3%B6rderung/Tools/Trainerdaten/trainerdaten.json";
-const WEBDAV_DEFAULT_USERNAME = "admin";
 const CORS_PROXY_DEFAULT_URL = "https://trainerdaten.michel-brunner.workers.dev";
 
 // Größenlimit pro hochgeladener Vorlage (.docx sind klein; großzügig gedeckelt).
@@ -54,6 +54,17 @@ const PLATZHALTER_FELDER = [
 const PLATZHALTER_MAP = Object.fromEntries(PLATZHALTER_FELDER.map(f => [f.key, f]));
 
 const APP_CHANGELOG = [
+  {
+    version: "1.2",
+    groups: [
+      {
+        title: "Trainerdaten-Zugriff",
+        items: [
+          "Der Zugriff auf Adresse und Bankverbindung aus den Trainerdaten braucht kein App-Passwort mehr: Er nutzt die normale Anmeldung aus der Tools-Übersicht. Voraussetzung ist das Bearbeiten-Recht für Trainerdaten (Häkchen „bearbeiten“ im Sichtbarkeits-Panel); die Prüfung passiert bei jedem Zugriff auf dem Server. Ist das Recht vorhanden, wird die Quelle „Aus den Trainerdaten“ beim Öffnen automatisch vorgewählt."
+        ]
+      }
+    ]
+  },
   {
     version: "1.1",
     groups: [

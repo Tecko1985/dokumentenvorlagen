@@ -160,8 +160,15 @@ function blobToBase64(blob) {
 }
 
 // ─── Admin-WebDAV: trainerdaten.json read-only (inkl. IBAN) ────────────────────
-function davAuthHeader(config) {
-  return "Basic " + btoa(unescape(encodeURIComponent(config.username + ":" + config.password)));
+// Seit dem Trainerdaten-Rechte-Umbau (2026-07-23) verlangt der Trainerdaten-
+// CORS-Proxy den ToolsUebersicht-Login-Token (Bearer) und prüft serverseitig
+// das Bearbeiten-Recht für Trainerdaten (Gateway-Aktion check-edit-permission);
+// die Nextcloud-Zugangsdaten hält er selbst als Worker-Secrets. Das früher hier
+// eingegebene App-Passwort ist abgeschafft.
+function davAuthHeader() {
+  const token = getSessionToken();
+  if (!token) throw new NotLoggedInError();
+  return "Bearer " + token;
 }
 function davRequestUrl(config) {
   if (config.proxyUrl) {
@@ -172,9 +179,10 @@ function davRequestUrl(config) {
 async function davReadFile(config) {
   const resp = await fetch(davRequestUrl(config), {
     method: "GET",
-    headers: { Authorization: davAuthHeader(config) }
+    headers: { Authorization: davAuthHeader() }
   });
-  if (resp.status === 401 || resp.status === 403) throw new Error("Zugriff verweigert — App-Passwort prüfen.");
+  if (resp.status === 401) throw new NotLoggedInError("Sitzung abgelaufen — bitte in der Tools-Übersicht neu anmelden.");
+  if (resp.status === 403) throw new Error("Kein Bearbeiten-Recht für Trainerdaten (Bearbeiter-Gruppe in der Tools-Übersicht nötig).");
   if (resp.status === 404) return null;
   if (!resp.ok) throw new Error(`WebDAV-Lesefehler (HTTP ${resp.status})`);
   const text = await resp.text();
@@ -182,10 +190,16 @@ async function davReadFile(config) {
   return JSON.parse(text);
 }
 
+// Eigenes Bearbeiten-Recht für Trainerdaten — dieselbe Prüfung, die der
+// CORS-Proxy serverseitig für jeden Zugriff macht (klare Meldung vorab).
+async function checkTrainerdatenEditPermission() {
+  const body = await gatewayRequest({ action: "check-edit-permission", app: "trainerdaten" });
+  return body.canEdit === true;
+}
+
 // Liest die Trainerdaten (Array) über den bestehenden Trainerdaten-CORS-Proxy.
 // Gibt die rohen Trainer-Objekte zurück (vorname/nachname/iban/... — genau die
-// Felder, die trainerdaten.json enthält). Wirft NotLoggedInError-analog nicht,
-// da es hier um die WebDAV-Credentials geht, nicht um das Gateway-Token.
+// Felder, die trainerdaten.json enthält).
 async function fetchTrainerdaten(config) {
   const data = await davReadFile(config);
   const arr = data && Array.isArray(data.trainer) ? data.trainer : [];
