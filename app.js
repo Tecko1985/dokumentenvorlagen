@@ -9,6 +9,8 @@ let currentUser = null;
 // (Letzteres zieht u.a. IBAN). Seit 2026-07-24 (2. Runde, Michel): Nur-Seher sehen nur den
 // Info-Tab -- "Sehen = absolut nichts editierbar".
 function canEdit() { return !!(currentUser && (currentUser.isAdmin || currentUser.canEdit)); }
+// Administrieren-Ebene: der Einstellungen-Tab ist Administratoren vorbehalten (2026-07-24).
+function canAdmin() { return !!(currentUser && (currentUser.isAdmin || currentUser.canAdmin)); }
 let profiles = [];                  // Trainerprofile (Gateway), lazy geladen
 let webdavConfig = null;            // Admin-WebDAV-Zugang (App-Passwort)
 let recipients = [];                // aktuell geladene, normalisierte Empfänger
@@ -94,6 +96,14 @@ async function init() {
     const infoSec = document.getElementById("tab-info");
     if (infoBtn) infoBtn.classList.add("active");
     if (infoSec) { infoSec.classList.add("active"); infoSec.style.display = ""; }
+  }
+
+  // Einstellungen-Tab = Administrieren-Ebene (2026-07-24): für Nicht-Admins ausblenden.
+  if (!canAdmin()) {
+    const eBtn = document.querySelector('[data-tab="einstellungen"]');
+    const eSec = document.getElementById("tab-einstellungen");
+    if (eBtn) { eBtn.style.display = "none"; eBtn.classList.remove("active"); }
+    if (eSec) { eSec.classList.remove("active"); eSec.style.display = "none"; }
   }
 
   // Trainerdaten-Zugriff hängt seit dem Rechte-Umbau am eigenen Konto
