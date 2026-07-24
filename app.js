@@ -76,12 +76,12 @@ async function init() {
   show("app-connect-screen", false);
 
   // Trainerdaten-Zugriff hängt seit dem Rechte-Umbau am eigenen Konto
-  // (Bearbeiten-Recht für Trainerdaten), nicht mehr an einem gespeicherten
+  // (Administrieren-Stufe für Trainerdaten), nicht mehr an einem gespeicherten
   // App-Passwort. Einen früher gespeicherten Zugang (mit Passwort) aus
   // IndexedDB entfernen (Hygiene) und das Recht still prüfen.
   try { await FileStore.clearWebdavConfig(); } catch (_) {}
   try {
-    if (getSessionToken() && (await checkTrainerdatenEditPermission())) {
+    if (getSessionToken() && (await checkTrainerdatenAdminPermission())) {
       webdavConfig = { url: TRAINERDATEN_WEBDAV_URL, proxyUrl: CORS_PROXY_DEFAULT_URL };
     }
   } catch (_) { /* kein Login/Netzfehler: Quelle bleibt aus, Hinweis kommt bei Auswahl */ }
@@ -410,9 +410,9 @@ function onQuelleChanged() {
   }
 }
 
-// Prüft das Bearbeiten-Recht des eigenen Kontos und aktiviert den Trainerdaten-
-// Zugriff — ersetzt die frühere App-Passwort-Eingabe (der CORS-Proxy erzwingt
-// dieselbe Prüfung serverseitig bei jedem Zugriff).
+// Prüft die Administrieren-Stufe des eigenen Kontos und aktiviert den
+// Trainerdaten-Zugriff — ersetzt die frühere App-Passwort-Eingabe (der
+// CORS-Proxy erzwingt dieselbe Prüfung serverseitig bei jedem Zugriff).
 async function trainerdatenConnect() {
   bannerError("td-connect-error", "");
   $("btn-td-connect").disabled = true; $("btn-td-connect").textContent = "Prüfe…";
@@ -420,8 +420,8 @@ async function trainerdatenConnect() {
     if (!getSessionToken()) {
       throw new NotLoggedInError("Bitte zuerst in der Tools-Übersicht anmelden (im selben Browser) und diese Seite neu laden.");
     }
-    if (!(await checkTrainerdatenEditPermission())) {
-      throw new Error("Dein Konto hat kein Bearbeiten-Recht für Trainerdaten. Ein Admin kann es im Sichtbarkeits-Panel der Tools-Übersicht vergeben (Häkchen „bearbeiten“ bei der passenden Gruppe).");
+    if (!(await checkTrainerdatenAdminPermission())) {
+      throw new Error("Dein Konto hat kein Administrieren-Recht für Trainerdaten. Ein Admin kann es im Sichtbarkeits-Panel der Tools-Übersicht vergeben (Häkchen „Administrieren“ bei der passenden Gruppe).");
     }
     const cfg = { url: TRAINERDATEN_WEBDAV_URL, proxyUrl: CORS_PROXY_DEFAULT_URL };
     await fetchTrainerdaten(cfg); // Test-Read
@@ -440,8 +440,8 @@ async function trainerdatenConnect() {
 function updateTrainerdatenConnectionUi() {
   const connected = !!webdavConfig;
   $("settings-td-status").textContent = connected
-    ? "Zugriff vorhanden — dein Konto hat das Bearbeiten-Recht für Trainerdaten."
-    : "Kein Zugriff — nötig ist das Bearbeiten-Recht für Trainerdaten (Sichtbarkeits-Panel der Tools-Übersicht).";
+    ? "Zugriff vorhanden — dein Konto hat das Administrieren-Recht für Trainerdaten."
+    : "Kein Zugriff — nötig ist das Administrieren-Recht für Trainerdaten (Sichtbarkeits-Panel der Tools-Übersicht).";
   const hint = $("td-connected-hint");
   if (connected) { hint.textContent = "✓ Trainerdaten verfügbar — Adresse und Bankverbindung können geladen werden."; show("td-connected-hint", true); }
   else show("td-connected-hint", false);

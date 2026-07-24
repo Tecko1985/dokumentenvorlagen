@@ -76,14 +76,14 @@
           </label>
           <label class="radio-option">
             <input type="radio" name="quelle" id="quelle-trainerdaten" value="trainerdaten" />
-            <span><strong>Trainerdaten inkl. Adresse &amp; Bankverbindung</strong> — benötigt einmalig das WebDAV-App-Passwort.</span>
+            <span><strong>Trainerdaten inkl. Adresse &amp; Bankverbindung</strong> — benötigt das Administrieren-Recht für Trainerdaten.</span>
           </label>
 
-          <!-- Admin-Datenzugriff (Bearbeiten-Recht Trainerdaten) -->
+          <!-- Admin-Datenzugriff (Administrieren-Stufe Trainerdaten) -->
           <div id="td-connect" class="subcard" style="display:none;">
             <p class="muted" style="margin-bottom:10px;">
               Zugriff auf die Trainerdaten (inkl. IBAN) läuft über dein Tools-Übersicht-Konto — nötig ist das
-              Bearbeiten-Recht für Trainerdaten, ein App-Passwort gibt es nicht mehr. Bankdaten werden nur im
+              Administrieren-Recht für Trainerdaten, ein App-Passwort gibt es nicht mehr. Bankdaten werden nur im
               Browser verarbeitet und nie in der Cloud gespeichert.
             </p>
             <p class="error-banner" id="td-connect-error"></p>
@@ -237,9 +237,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="config.js?v=1.3"></script>
-<script src="db.js?v=1.1"></script>
+<script src="config.js?v=1.4"></script>
+<script src="db.js?v=1.2"></script>
 <script src="docx-fill.js?v=1.0"></script>
-<script src="app.js?v=1.3"></script>
+<script src="app.js?v=1.4"></script>
 </body>
 </html>

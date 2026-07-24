@@ -13,10 +13,11 @@ const GATEWAY_APP_ID = "dokumentenvorlagen";
 // ─── Admin-Datenzugriff auf Trainerdaten (inkl. IBAN) ─────────────────────────
 // Wie der Trainerdaten-Admin seit dem Rechte-Umbau (2026-07-23): trainerdaten.json
 // wird read-only über den Trainerdaten-CORS-Proxy gelesen, der den ToolsUebersicht-
-// Login-Token verlangt und serverseitig das Bearbeiten-Recht für Trainerdaten
-// prüft (kein App-Passwort mehr im Client, Nextcloud-Zugang als Worker-Secret —
-// siehe cors-proxy-worker.js in Trainerdaten). Die IBAN bleibt im Browser und
-// läuft nie über das zentrale Gateway.
+// Login-Token verlangt und serverseitig die Administrieren-Stufe für Trainerdaten
+// prüft (seit der dritten Rechte-Stufe 2026-07-24; kein App-Passwort mehr im
+// Client, Nextcloud-Zugang als Worker-Secret — siehe cors-proxy-worker.js in
+// Trainerdaten). Die IBAN bleibt im Browser und läuft nie über das zentrale
+// Gateway.
 const TRAINERDATEN_WEBDAV_URL =
   "https://nx88695.your-storageshare.de/remote.php/dav/files/admin/" +
   "05_Nachwuchsbereich/02_F%C3%B6rderung/Tools/Trainerdaten/trainerdaten.json";
@@ -54,6 +55,17 @@ const PLATZHALTER_FELDER = [
 const PLATZHALTER_MAP = Object.fromEntries(PLATZHALTER_FELDER.map(f => [f.key, f]));
 
 const APP_CHANGELOG = [
+  {
+    version: "1.3",
+    groups: [
+      {
+        title: "Trainerdaten-Zugriff",
+        items: [
+          "Der Zugriff auf Adresse und Bankverbindung aus den Trainerdaten verlangt jetzt die neue Rechte-Stufe „Administrieren“ für Trainerdaten (statt des Häkchens „Bearbeiten“) — dieselbe Stufe, an der auch der Trainerdaten-Verwaltungsbereich hängt. Vergeben wird sie im Sichtbarkeits-Panel der Tools-Übersicht; globale Admins haben den Zugriff weiterhin automatisch."
+        ]
+      }
+    ]
+  },
   {
     version: "1.2",
     groups: [

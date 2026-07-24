@@ -162,9 +162,11 @@ function blobToBase64(blob) {
 // ─── Admin-WebDAV: trainerdaten.json read-only (inkl. IBAN) ────────────────────
 // Seit dem Trainerdaten-Rechte-Umbau (2026-07-23) verlangt der Trainerdaten-
 // CORS-Proxy den ToolsUebersicht-Login-Token (Bearer) und prüft serverseitig
-// das Bearbeiten-Recht für Trainerdaten (Gateway-Aktion check-edit-permission);
-// die Nextcloud-Zugangsdaten hält er selbst als Worker-Secrets. Das früher hier
-// eingegebene App-Passwort ist abgeschafft.
+// die Administrieren-Stufe für Trainerdaten (canAdmin aus der Gateway-Aktion
+// check-edit-permission — seit der dritten Rechte-Stufe 2026-07-24 reicht das
+// Bearbeiten-Häkchen nicht mehr, hier hängt die IBAN dran); die Nextcloud-
+// Zugangsdaten hält er selbst als Worker-Secrets. Das früher hier eingegebene
+// App-Passwort ist abgeschafft.
 function davAuthHeader() {
   const token = getSessionToken();
   if (!token) throw new NotLoggedInError();
@@ -182,7 +184,7 @@ async function davReadFile(config) {
     headers: { Authorization: davAuthHeader() }
   });
   if (resp.status === 401) throw new NotLoggedInError("Sitzung abgelaufen — bitte in der Tools-Übersicht neu anmelden.");
-  if (resp.status === 403) throw new Error("Kein Bearbeiten-Recht für Trainerdaten (Bearbeiter-Gruppe in der Tools-Übersicht nötig).");
+  if (resp.status === 403) throw new Error("Kein Administrieren-Recht für Trainerdaten (Häkchen „Administrieren“ in der Tools-Übersicht nötig).");
   if (resp.status === 404) return null;
   if (!resp.ok) throw new Error(`WebDAV-Lesefehler (HTTP ${resp.status})`);
   const text = await resp.text();
@@ -190,11 +192,11 @@ async function davReadFile(config) {
   return JSON.parse(text);
 }
 
-// Eigenes Bearbeiten-Recht für Trainerdaten — dieselbe Prüfung, die der
+// Eigene Administrieren-Stufe für Trainerdaten — dieselbe Prüfung, die der
 // CORS-Proxy serverseitig für jeden Zugriff macht (klare Meldung vorab).
-async function checkTrainerdatenEditPermission() {
+async function checkTrainerdatenAdminPermission() {
   const body = await gatewayRequest({ action: "check-edit-permission", app: "trainerdaten" });
-  return body.canEdit === true;
+  return body.canAdmin === true;
 }
 
 // Liest die Trainerdaten (Array) über den bestehenden Trainerdaten-CORS-Proxy.
