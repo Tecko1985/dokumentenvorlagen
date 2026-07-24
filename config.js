@@ -67,7 +67,7 @@ const APP_CHANGELOG = [
       {
         title: "Nur-Ansicht ohne Bearbeiten-Recht",
         items: [
-          "Wer das Tool nur sehen darf (kein Bearbeiten-Recht), sieht den Verwaltungs-Tab „Vorlagen“ (Hochladen, Umbenennen, Löschen) nicht mehr — Dokumente erstellen bleibt möglich. Zusätzlich ist das Speichern des Vorlagen-Katalogs jetzt serverseitig auf Bearbeiter beschränkt, sodass reines Ansehen nichts mehr überschreiben kann."
+          "Das gesamte Tool ist jetzt Bearbeitern vorbehalten: Wer nur sehen darf, sieht weder den Verwaltungs-Tab „Vorlagen“ (Hochladen/Umbenennen/Löschen) noch den Tab „Dokumente erstellen“ (der u.a. Bankdaten zieht) — nur der Info-Tab bleibt. Der Vorlagen-Katalog ist zusätzlich serverseitig auf Bearbeiter beschränkt."
         ]
       }
     ]

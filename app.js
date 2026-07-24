@@ -5,8 +5,9 @@
 let catalog = { vorlagen: [] };     // { vorlagen: [{ id, name, beschreibung, fileId, dateiName, ersetzbar[], erkannt[], gesplittet[], erstelltAm }] }
 let currentUser = null;
 // Bearbeiten-Recht (Tools-Uebersicht editGroupIds; Administrieren schliesst es serverseitig
-// ein). Katalog-Pflege (Vorlagen hochladen/umbenennen/loeschen) ist Bearbeitern vorbehalten,
-// Dokumente ERSTELLEN bleibt fuer Nur-Seher moeglich ("Sehen = wirklich nur sehen", 2026-07-24).
+// ein). Das GANZE Tool ist Bearbeitern vorbehalten: Katalog-Pflege UND Dokumente erstellen
+// (Letzteres zieht u.a. IBAN). Seit 2026-07-24 (2. Runde, Michel): Nur-Seher sehen nur den
+// Info-Tab -- "Sehen = absolut nichts editierbar".
 function canEdit() { return !!(currentUser && (currentUser.isAdmin || currentUser.canEdit)); }
 let profiles = [];                  // Trainerprofile (Gateway), lazy geladen
 let webdavConfig = null;            // Admin-WebDAV-Zugang (App-Passwort)
@@ -79,14 +80,20 @@ async function init() {
   show("app-main", true);
   show("app-connect-screen", false);
 
-  // Nur-Seher: der Verwaltungs-Tab "Vorlagen" (Upload/Umbenennen/Loeschen) ist Bearbeitern
-  // vorbehalten; er wird ausgeblendet, damit er nicht editierbar wirkt und dann serverseitig
-  // in ein 403 laeuft. Der aktive Default-Tab "Erstellen" bleibt fuer Seher nutzbar.
+  // Nur-Seher: das gesamte Tool ist Bearbeitern vorbehalten -- Katalog-Pflege (Tab "Vorlagen")
+  // UND Dokumente erstellen (Tab "Erstellen", zieht u.a. IBAN). Beide Arbeits-Tabs ausblenden,
+  // Info aktiv setzen. Serverseitig ist der Katalog ohnehin gesperrt (WRITE_REQUIRES).
   if (!canEdit()) {
-    const vorlagenBtn = document.querySelector('[data-tab="vorlagen"]');
-    if (vorlagenBtn) vorlagenBtn.style.display = "none";
-    const vorlagenSec = document.getElementById("tab-vorlagen");
-    if (vorlagenSec) vorlagenSec.style.display = "none";
+    ["erstellen", "vorlagen"].forEach((t) => {
+      const btn = document.querySelector('[data-tab="' + t + '"]');
+      const sec = document.getElementById("tab-" + t);
+      if (btn) { btn.style.display = "none"; btn.classList.remove("active"); }
+      if (sec) { sec.classList.remove("active"); sec.style.display = "none"; }
+    });
+    const infoBtn = document.querySelector('[data-tab="info"]');
+    const infoSec = document.getElementById("tab-info");
+    if (infoBtn) infoBtn.classList.add("active");
+    if (infoSec) { infoSec.classList.add("active"); infoSec.style.display = ""; }
   }
 
   // Trainerdaten-Zugriff hängt seit dem Rechte-Umbau am eigenen Konto
