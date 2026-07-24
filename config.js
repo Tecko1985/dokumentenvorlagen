@@ -63,6 +63,12 @@ const APP_CHANGELOG = [
         items: [
           "Der Zugriff auf Adresse und Bankverbindung aus den Trainerdaten verlangt jetzt die neue Rechte-Stufe „Administrieren“ für Trainerdaten (statt des Häkchens „Bearbeiten“) — dieselbe Stufe, an der auch der Trainerdaten-Verwaltungsbereich hängt. Vergeben wird sie im Sichtbarkeits-Panel der Tools-Übersicht; globale Admins haben den Zugriff weiterhin automatisch."
         ]
+      },
+      {
+        title: "Nur-Ansicht ohne Bearbeiten-Recht",
+        items: [
+          "Wer das Tool nur sehen darf (kein Bearbeiten-Recht), sieht den Verwaltungs-Tab „Vorlagen“ (Hochladen, Umbenennen, Löschen) nicht mehr — Dokumente erstellen bleibt möglich. Zusätzlich ist das Speichern des Vorlagen-Katalogs jetzt serverseitig auf Bearbeiter beschränkt, sodass reines Ansehen nichts mehr überschreiben kann."
+        ]
       }
     ]
   },

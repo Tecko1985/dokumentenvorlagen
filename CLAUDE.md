@@ -64,8 +64,12 @@ Nutzer tippt den Platzhalter im Word neu.
 
 - `DAV_APPS["dokumentenvorlagen"]` → `.../Tools/Dokumentenvorlagen/dokumentenvorlagen.json`.
 - `ALLOWED_ORIGINS` += `http://localhost:8789`.
-- NICHT in `WRITE_REQUIRES_EDIT_PERMISSION` — wer das (streng gegatete) Tool sehen darf,
-  darf den Katalog auch pflegen.
+- **In `WRITE_REQUIRES_EDIT_PERMISSION` (seit 2026-07-24, Spec klare-rechte-trennung):** der
+  Vorlagen-Katalog (`dav-save`) ist Bearbeitern vorbehalten; ein Nur-Seher kann ihn nicht mehr
+  überschreiben. Clientseitig ist der Verwaltungs-Tab „Vorlagen" (Upload/Umbenennen/Löschen)
+  für Nur-Seher ausgeblendet (`canEdit()` in app.js), das Dokumente-ERSTELLEN (dav-load +
+  lokaler Fill) bleibt für Seher offen. Kehrt die frühere „wer sehen darf, pflegt den
+  Katalog"-Regel bewusst um.
 - Der Trainerdaten-CORS-Proxy ist seit 2026-07-23 Bearer-gegated (seit 2026-07-24:
   Administrieren-Stufe Trainerdaten statt Bearbeiten-Recht; Worker-Secrets statt
   App-Passwort) — siehe `Trainerdaten/cors-proxy-worker.js`.

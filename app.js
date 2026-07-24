@@ -4,6 +4,10 @@
 // ── State ─────────────────────────────────────────────────────────────────────
 let catalog = { vorlagen: [] };     // { vorlagen: [{ id, name, beschreibung, fileId, dateiName, ersetzbar[], erkannt[], gesplittet[], erstelltAm }] }
 let currentUser = null;
+// Bearbeiten-Recht (Tools-Uebersicht editGroupIds; Administrieren schliesst es serverseitig
+// ein). Katalog-Pflege (Vorlagen hochladen/umbenennen/loeschen) ist Bearbeitern vorbehalten,
+// Dokumente ERSTELLEN bleibt fuer Nur-Seher moeglich ("Sehen = wirklich nur sehen", 2026-07-24).
+function canEdit() { return !!(currentUser && (currentUser.isAdmin || currentUser.canEdit)); }
 let profiles = [];                  // Trainerprofile (Gateway), lazy geladen
 let webdavConfig = null;            // Admin-WebDAV-Zugang (App-Passwort)
 let recipients = [];                // aktuell geladene, normalisierte Empfänger
@@ -74,6 +78,16 @@ async function init() {
 
   show("app-main", true);
   show("app-connect-screen", false);
+
+  // Nur-Seher: der Verwaltungs-Tab "Vorlagen" (Upload/Umbenennen/Loeschen) ist Bearbeitern
+  // vorbehalten; er wird ausgeblendet, damit er nicht editierbar wirkt und dann serverseitig
+  // in ein 403 laeuft. Der aktive Default-Tab "Erstellen" bleibt fuer Seher nutzbar.
+  if (!canEdit()) {
+    const vorlagenBtn = document.querySelector('[data-tab="vorlagen"]');
+    if (vorlagenBtn) vorlagenBtn.style.display = "none";
+    const vorlagenSec = document.getElementById("tab-vorlagen");
+    if (vorlagenSec) vorlagenSec.style.display = "none";
+  }
 
   // Trainerdaten-Zugriff hängt seit dem Rechte-Umbau am eigenen Konto
   // (Administrieren-Stufe für Trainerdaten), nicht mehr an einem gespeicherten
