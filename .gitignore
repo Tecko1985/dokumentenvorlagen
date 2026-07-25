@@ -8,3 +8,6 @@
 # Repo ist oeffentlich, und ein versehentlich ausgefuelltes Exemplar traegt
 # Personendaten (Name, Anschrift, Verguetung). Deshalb generell draussen.
 *.docx
+
+# Lokales Claude-Projektgedaechtnis, nicht Teil des oeffentlichen Repos
+CLAUDE.md
