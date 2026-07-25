@@ -25,6 +25,26 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+// Id für Vorlage und hochgeladene .docx. Der Worker prüft die fileId in
+// prepareFileAction() gegen FILE_ID_RE und akzeptiert AUSSCHLIESSLICH das
+// UUID-Format — ein Fallback im Stil "b" + ein paar Hex-Zeichen (busplan,
+// fahrtenbuch) liefert hier nur ein HTTP 400 statt des TypeErrors, ist also
+// kein Ersatz. crypto.randomUUID() gibt es erst ab Safari 15.4; auf älterem
+// iOS warf der nackte Aufruf einen TypeError und der Vorlagen-Upload brach ab.
+// crypto.getRandomValues gibt es dort seit jeher, daraus bauen wir das Format
+// selbst: 16 Zufallsbytes, Version 4 und Variante gesetzt.
+function uuid() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const hex = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) +
+         "-" + hex.slice(16, 20) + "-" + hex.slice(20);
+}
 function fmtDateOnly(iso) {
   if (!iso) return "";
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -288,11 +308,11 @@ async function saveTemplate() {
   $("btn-tpl-upload").disabled = true;
   $("btn-tpl-upload").textContent = "Speichern…";
   try {
-    const fileId = crypto.randomUUID();
+    const fileId = uuid();
     const base64 = await blobToBase64(pendingUpload.file);
     await gatewayFilePut(fileId, pendingUpload.file.name, pendingUpload.file.type, base64);
     catalog.vorlagen.push({
-      id: crypto.randomUUID(),
+      id: uuid(),
       name,
       beschreibung: val("tpl-new-desc").trim(),
       fileId,

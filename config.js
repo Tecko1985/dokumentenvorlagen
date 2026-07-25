@@ -56,6 +56,17 @@ const PLATZHALTER_MAP = Object.fromEntries(PLATZHALTER_FELDER.map(f => [f.key, f
 
 const APP_CHANGELOG = [
   {
+    version: "1.4",
+    groups: [
+      {
+        title: "Vorlagen-Upload auf älteren iPhones/iPads",
+        items: [
+          "Auf iOS-Geräten mit Safari älter als 15.4 brach das Hochladen einer Vorlage mit einer Fehlermeldung ab, weil die Erzeugung der internen Datei-Id dort nicht unterstützt wurde. Die Id wird jetzt bei Bedarf selbst erzeugt — im identischen Format, das der Server verlangt. Auf neueren Geräten ändert sich nichts."
+        ]
+      }
+    ]
+  },
+  {
     version: "1.3",
     groups: [
       {
