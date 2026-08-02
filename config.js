@@ -56,97 +56,60 @@ const PLATZHALTER_MAP = Object.fromEntries(PLATZHALTER_FELDER.map(f => [f.key, f
 
 const APP_CHANGELOG = [
   {
-    version: "1.5",
-    groups: [
-      {
-        title: "Bedienung am Handy",
-        items: [
-          "Eingabefelder sind am Handy mindestens 16 Pixel groß. Dadurch zoomt der iPhone-Browser beim Antippen eines Feldes nicht mehr ungefragt in die Seite hinein und bleibt danach verschoben stehen."
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.4",
-    groups: [
-      {
-        title: "Vorlagen-Upload auf älteren iPhones/iPads",
-        items: [
-          "Auf iOS-Geräten mit Safari älter als 15.4 brach das Hochladen einer Vorlage mit einer Fehlermeldung ab, weil die Erzeugung der internen Datei-Id dort nicht unterstützt wurde. Die Id wird jetzt bei Bedarf selbst erzeugt — im identischen Format, das der Server verlangt. Auf neueren Geräten ändert sich nichts."
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.3",
-    groups: [
-      {
-        title: "Trainerdaten-Zugriff",
-        items: [
-          "Der Zugriff auf Adresse und Bankverbindung aus den Trainerdaten verlangt jetzt die neue Rechte-Stufe „Administrieren“ für Trainerdaten (statt des Häkchens „Bearbeiten“) — dieselbe Stufe, an der auch der Trainerdaten-Verwaltungsbereich hängt. Vergeben wird sie im Sichtbarkeits-Panel der Tools-Übersicht; globale Admins haben den Zugriff weiterhin automatisch."
-        ]
-      },
-      {
-        title: "Nur-Ansicht ohne Bearbeiten-Recht",
-        items: [
-          "Das gesamte Tool ist jetzt Bearbeitern vorbehalten: Wer nur sehen darf, sieht weder den Verwaltungs-Tab „Vorlagen“ (Hochladen/Umbenennen/Löschen) noch den Tab „Dokumente erstellen“ (der u.a. Bankdaten zieht) — nur der Info-Tab bleibt. Der Vorlagen-Katalog ist zusätzlich serverseitig auf Bearbeiter beschränkt."
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.2",
-    groups: [
-      {
-        title: "Trainerdaten-Zugriff",
-        items: [
-          "Der Zugriff auf Adresse und Bankverbindung aus den Trainerdaten braucht kein App-Passwort mehr: Er nutzt die normale Anmeldung aus der Tools-Übersicht. Voraussetzung ist das Bearbeiten-Recht für Trainerdaten (Häkchen „bearbeiten“ im Sichtbarkeits-Panel); die Prüfung passiert bei jedem Zugriff auf dem Server. Ist das Recht vorhanden, wird die Quelle „Aus den Trainerdaten“ beim Öffnen automatisch vorgewählt."
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.1",
-    groups: [
-      {
-        title: "Empfänger filtern",
-        items: [
-          "Über der Empfängerliste stehen vier Filter: Mannschaft, Lizenz, Vertrag und Führungszeugnis — damit lässt sich eine Vorlage gezielt nur an die Personen ausgeben, die sie wirklich brauchen.",
-          "Beispiel Übungsleitervertrag: Filter „Vertrag = Noch keiner bereitgestellt“ zeigt genau die, die noch keinen bekommen haben.",
-          "Beispiel Führungszeugnis: Filter „Noch keins hinterlegt“ überspringt alle, die ihr erweitertes Führungszeugnis bereits eingereicht haben.",
-          "Filter lassen sich kombinieren und zusammen mit dem Suchfeld verwenden; „Alle“ wählt dann nur die gerade angezeigten Empfänger aus.",
-          "Mannschaft und Lizenz werden automatisch aus den geladenen Daten befüllt, inklusive der Auswahl „ohne Mannschaft“ bzw. „ohne Lizenz“.",
-          "Vertrags- und Führungszeugnis-Status stammen aus den Trainerdaten und stehen deshalb nur bei der Datenquelle „Trainerdaten“ zur Verfügung.",
-          "Bleiben ausgewählte Empfänger durch einen Filter ausgeblendet, weist die Zeile unter der Liste ausdrücklich darauf hin — sie bekommen trotzdem ein Dokument."
-        ]
-      }
-    ]
-  },
-  {
     version: "1.0",
     groups: [
       {
         title: "Serienbrief aus Word-Vorlagen",
         items: [
-          "Vorlagen-Katalog: Word-Dokumente (.docx) mit Platzhaltern wie {{VORNAME}} hochladen, benennen, beschreiben und wieder löschen — zentral gespeichert, für alle Berechtigten dieselbe Auswahl.",
-          "Beim Hochladen erkennt das Tool automatisch, welche Platzhalter eine Vorlage enthält.",
-          "Eine Vorlage mit beliebig vielen Empfängern befüllen und alle fertigen Dokumente auf einmal als ZIP herunterladen (Serienbrief).",
-          "Empfänger wahlweise aus dem zentralen Trainerprofil (Name, Lizenz, Mannschaft) oder — mit Admin-Datenzugriff — aus den Trainerdaten inklusive Adresse und Bankverbindung.",
-          "Bankdaten bleiben im Browser: die ausgefüllten Dokumente werden lokal erzeugt und heruntergeladen, nie in der Cloud gespeichert.",
-          "Für originalgetreue PDFs liegt das Skript docx-zu-pdf.ps1 bei, das einen Ordner voller erzeugter .docx lokal über Microsoft Word als PDF exportiert."
+          "Vorlagen-Katalog: Word-Dokumente mit Platzhaltern wie {{VORNAME}} hochladen, benennen, beschreiben und wieder löschen. Der Katalog liegt zentral, alle Berechtigten sehen dieselbe Auswahl.",
+          "Beim Hochladen erkennt das Werkzeug von selbst, welche Platzhalter eine Vorlage enthält.",
+          "Eine Vorlage lässt sich mit beliebig vielen Empfängern befüllen; alle fertigen Dokumente kommen zusammen als ZIP-Datei heraus.",
+          "Für originalgetreue PDFs liegt ein Skript bei, das einen Ordner voller erzeugter Word-Dateien lokal über Microsoft Word als PDF exportiert."
         ]
       },
       {
-        title: "Platzhalter-Referenz",
+        title: "Woher die Daten kommen",
         items: [
-          "Im Tab „Vorlagen“ gibt es eine Übersicht aller verfügbaren Platzhalter, gruppiert nach Datenquelle (Trainerprofil, Trainerdaten, automatisch).",
-          "Ein Klick auf einen Platzhalter kopiert ihn in die Zwischenablage — so lässt er sich direkt in die Word-Vorlage einfügen."
+          "Empfänger wahlweise aus dem zentralen Trainerprofil mit Name, Lizenz und Mannschaft — oder aus den Trainerdaten, dann zusätzlich mit Adresse und Bankverbindung.",
+          "Ist der Zugriff auf die Trainerdaten vorhanden, wird diese Quelle beim Öffnen von selbst vorgewählt. Straße, PLZ, Ort und Bankverbindung sind dann sofort da.",
+          "Der Zugriff auf Adresse und Bankverbindung verlangt die Stufe „Administrieren“ für die Trainerdaten — dieselbe Stufe, an der auch deren Verwaltungsbereich hängt. Geprüft wird das bei jedem Zugriff auf dem Server.",
+          "Im Reiter „Vorlagen“ steht eine Übersicht aller verfügbaren Platzhalter, gruppiert nach Quelle. Ein Klick kopiert einen Platzhalter in die Zwischenablage, von wo er direkt in die Word-Vorlage wandert."
         ]
       },
       {
-        title: "Adresse & Bankverbindung sofort da",
+        title: "Empfänger filtern",
         items: [
-          "Ist der Trainerdaten-Zugriff einmal verbunden, wird beim Öffnen automatisch diese Datenquelle verwendet — Straße, PLZ/Ort und Bankverbindung sind sofort verfügbar, ohne die Quelle manuell umschalten zu müssen."
+          "Über der Empfängerliste stehen vier Filter: Mannschaft, Lizenz, Vertrag und Führungszeugnis. Damit geht eine Vorlage gezielt an die Personen, die sie wirklich brauchen.",
+          "Beispiel Übungsleitervertrag: der Filter „Vertrag = noch keiner bereitgestellt“ zeigt genau die, die noch keinen bekommen haben.",
+          "Beispiel Führungszeugnis: der Filter „noch keins hinterlegt“ überspringt alle, die ihres bereits eingereicht haben.",
+          "Filter lassen sich kombinieren und mit dem Suchfeld verbinden. „Alle“ wählt dann nur die gerade angezeigten Empfänger.",
+          "Mannschaft und Lizenz füllen sich aus den geladenen Daten, einschließlich der Einträge „ohne Mannschaft“ und „ohne Lizenz“.",
+          "Vertrag und Führungszeugnis stammen aus den Trainerdaten und stehen deshalb nur bei dieser Datenquelle zur Verfügung.",
+          "Bleiben ausgewählte Empfänger durch einen Filter ausgeblendet, weist die Zeile unter der Liste ausdrücklich darauf hin — sie bekommen trotzdem ein Dokument."
+        ]
+      },
+      {
+        title: "Was nicht gespeichert wird",
+        items: [
+          "In der Cloud liegt nur der Katalog mit den leeren Vorlagen.",
+          "Die ausgefüllten Dokumente entstehen im Browser und werden direkt heruntergeladen. Sie werden nie in der Cloud abgelegt — Bankdaten verlassen das eigene Gerät nicht."
+        ]
+      },
+      {
+        title: "Wer darf was",
+        items: [
+          "Das Werkzeug ist Bearbeitern vorbehalten. Wer es nur sehen darf, sieht ausschließlich den Reiter „Info“ — weder die Vorlagenverwaltung noch das Erstellen von Dokumenten.",
+          "Bearbeiten: Vorlagen hochladen, umbenennen und löschen sowie Dokumente erstellen.",
+          "Adresse und Bankverbindung aus den Trainerdaten setzen zusätzlich die Stufe „Administrieren“ für die Trainerdaten voraus.",
+          "Der Vorlagen-Katalog ist auch auf dem Server auf Bearbeiter beschränkt, nicht nur am Bildschirm."
+        ]
+      },
+      {
+        title: "Bedienung am Handy",
+        items: [
+          "Die Ansicht funktioniert am Handy; für das Zusammenstellen von Serienbriefen ist ein Rechner allerdings die bequemere Wahl.",
+          "Eingabefelder sind mindestens 16 Pixel groß, damit der iPhone-Browser beim Antippen nicht ungefragt in die Seite hineinzoomt und verschoben stehen bleibt.",
+          "Das Hochladen einer Vorlage funktioniert auch auf älteren iPhones und iPads: die interne Datei-Kennung wird notfalls selbst im geforderten Format erzeugt. Zuvor brach der Upload dort mit einer Fehlermeldung ab."
         ]
       }
     ]
