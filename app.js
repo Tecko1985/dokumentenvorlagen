@@ -166,10 +166,6 @@ function wireStaticEvents() {
   document.querySelectorAll("nav button[data-tab]").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
-  // Versionsbadge -> Einstellungen/Changelog
-  const vb = $("version-badge");
-  if (vb) vb.addEventListener("click", () => { switchTab("info"); });
-
   // Vorlagen-Upload
   $("btn-tpl-file").addEventListener("click", () => $("tpl-file-input").click());
   $("tpl-file-input").addEventListener("change", (e) => onTemplateFileChosen(e.target.files[0]));
@@ -768,7 +764,6 @@ async function erzeugen() {
 // ── Changelog / Version ───────────────────────────────────────────────────────
 function renderVersionBadges() {
   const v = "v" + APP_VERSION;
-  const vb = $("version-badge"); if (vb) vb.textContent = v;
   const vb2 = $("version-badge-2"); if (vb2) vb2.textContent = v;
 }
 function renderChangelog() {
