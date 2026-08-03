@@ -5,8 +5,8 @@ mit Platzhaltern zentral verwalten und in einem Rutsch für beliebig viele Empf�
 befüllen — z. B. Trainerverträge, Anfragen für ein erweitertes Führungszeugnis oder
 Bescheinigungen.
 
-**Live:** https://tecko1985.github.io/dokumentenvorlagen/ (Anmeldung über die
-[Tools-Übersicht](https://tecko1985.github.io/ToolsUebersicht/) erforderlich).
+**Live:** https://sc1911heiligenstadt.github.io/dokumentenvorlagen/ (Anmeldung über die
+[Tools-Übersicht](https://sc1911heiligenstadt.github.io/ToolsUebersicht/) erforderlich).
 
 ## Was es macht
 

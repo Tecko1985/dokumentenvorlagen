@@ -5,7 +5,7 @@ const APP_VERSION = "1.0";
 
 // ─── Zentraler Login-Gateway (ToolsUebersicht) ────────────────────────────────
 // Gleiches Token-Muster wie alle Gateway-Apps: Login-Token liegt im localStorage
-// der Origin tecko1985.github.io, der landingpage-Worker prüft Token + Tool-
+// der Origin sc1911heiligenstadt.github.io, der landingpage-Worker prüft Token + Tool-
 // Sichtbarkeit und greift serverseitig auf Nextcloud zu.
 const GATEWAY_URL = "https://landingpage.michel-brunner.workers.dev";
 const GATEWAY_APP_ID = "dokumentenvorlagen";
