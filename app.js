@@ -92,6 +92,26 @@ async function init() {
 
   if (!getSessionToken()) { show("app-connect-screen", true); return; }
 
+  // Katalog und Trainerdaten-Recht sind voneinander unabhaengig und werden beide
+  // sofort angestossen. Der Katalog wird ZUERST abgewartet, weil dav-load das
+  // "me" gratis mitliefert (Gateway seit 2026-07-22) — fetchMe() darunter kostet
+  // dadurch keinen eigenen Roundtrip mehr. Vorher liefen hier drei Anfragen
+  // streng nacheinander (me -> check-edit-permission -> dav-load), also zwei
+  // Nextcloud-Roundtrips a 200-450 ms mehr als noetig.
+  const katalogPromise = gatewayLoadCatalog();
+  const trainerdatenRechtPromise = getSessionToken()
+    ? checkTrainerdatenAdminPermission().catch(() => false) // kein Login/Netzfehler: Quelle bleibt aus
+    : Promise.resolve(false);
+
+  let katalogFehler = null;
+  try {
+    const loaded = await katalogPromise;
+    if (loaded && Array.isArray(loaded.vorlagen)) catalog = loaded;
+  } catch (e) {
+    if (e instanceof NotLoggedInError) { show("app-connect-screen", true); return; }
+    katalogFehler = e;
+  }
+
   try {
     currentUser = await fetchMe();
   } catch (e) {
@@ -131,11 +151,11 @@ async function init() {
   // App-Passwort. Einen früher gespeicherten Zugang (mit Passwort) aus
   // IndexedDB entfernen (Hygiene) und das Recht still prüfen.
   try { await FileStore.clearWebdavConfig(); } catch (_) {}
-  try {
-    if (getSessionToken() && (await checkTrainerdatenAdminPermission())) {
-      webdavConfig = { url: TRAINERDATEN_WEBDAV_URL, proxyUrl: CORS_PROXY_DEFAULT_URL };
-    }
-  } catch (_) { /* kein Login/Netzfehler: Quelle bleibt aus, Hinweis kommt bei Auswahl */ }
+  // Die Rechteprüfung läuft seit dem Umbau oben parallel zum Katalog — hier wird
+  // nur noch ihr Ergebnis abgeholt, nicht mehr auf einen eigenen Roundtrip gewartet.
+  if (await trainerdatenRechtPromise) {
+    webdavConfig = { url: TRAINERDATEN_WEBDAV_URL, proxyUrl: CORS_PROXY_DEFAULT_URL };
+  }
   updateTrainerdatenConnectionUi();
 
   // Bei vorhandenem Trainerdaten-Zugriff diese Quelle vorwählen, damit Adresse &
@@ -144,13 +164,7 @@ async function init() {
   if (webdavConfig) $("quelle-trainerdaten").checked = true;
   updateFilterVisibility();
 
-  try {
-    const loaded = await gatewayLoadCatalog();
-    if (loaded && Array.isArray(loaded.vorlagen)) catalog = loaded;
-  } catch (e) {
-    if (e instanceof NotLoggedInError) { location.reload(); return; }
-    console.warn("Katalog konnte nicht geladen werden:", e);
-  }
+  if (katalogFehler) console.warn("Katalog konnte nicht geladen werden:", katalogFehler);
 
   renderTemplateList();
   renderTemplateSelect();

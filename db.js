@@ -93,8 +93,18 @@ async function gatewayRequest(payload) {
   return resp.json();
 }
 
-// Liefert {username, isAdmin, groupIds, vorname, nachname, canEdit} der eingeloggten Person.
+// Das "me" aus der letzten dav-load-Antwort. Der Worker legt es bei, weil er
+// nutzer.json und die Rechte-Datei fuer diesen Request ohnehin gelesen hat --
+// der erste fetchMe() nach dem Laden kommt damit ohne eigenen Roundtrip aus.
+let gatewayMe = null;
+
+// Liefert {username, isAdmin, groupIds, vorname, nachname, canEdit, canAdmin} der eingeloggten Person.
 async function fetchMe() {
+  // Genau EINMAL aus dem letzten dav-load bedienen, danach wieder echt fragen:
+  // ein spaeterer Aufruf will den aktuellen Stand (etwa nach einem Rechte-
+  // wechsel), nicht eine beliebig alte Kopie. Faellt von selbst auf den Request
+  // zurueck, wenn der Worker das Feld noch nicht mitschickt.
+  if (gatewayMe) { const me = gatewayMe; gatewayMe = null; return me; }
   return gatewayRequest({ action: "me", app: GATEWAY_APP_ID });
 }
 
@@ -102,6 +112,7 @@ async function fetchMe() {
 async function gatewayLoadCatalog() {
   const body = await gatewayRequest({ action: "dav-load", app: GATEWAY_APP_ID });
   gatewayRev = typeof body.rev === "string" ? body.rev : null;
+  gatewayMe = (body.me && typeof body.me === "object") ? body.me : null;
   return body.data; // Objekt oder null (Datei noch nicht vorhanden)
 }
 async function gatewaySaveCatalog(dataObj) {
