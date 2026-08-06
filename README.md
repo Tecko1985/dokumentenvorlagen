@@ -1,49 +1,23 @@
-# Dokumentenvorlagen
+# 📄 Dokumentenvorlagen
 
-Serienbrief-Tool für den 1. SC 1911 e.V. Heilbad Heiligenstadt: Word-Vorlagen (`.docx`)
-mit Platzhaltern zentral verwalten und in einem Rutsch für beliebig viele Empfänger
-befüllen — z. B. Trainerverträge, Anfragen für ein erweitertes Führungszeugnis oder
-Bescheinigungen.
+Word-Vorlagen (Trainervertrag, Anfragen, Bescheinigungen) mit Platzhaltern zentral verwalten und in einem Rutsch für viele Empfänger befüllen — Daten aus dem Trainerprofil oder, mit der Stufe „Administrieren“ für Trainerdaten, inkl. Adresse und Bankverbindung; Ausgabe als Word-Dokumente, originalgetreue PDFs über ein beiliegendes Skript (nur für berechtigte Gruppe).
 
-**Live:** https://sc1911heiligenstadt.github.io/dokumentenvorlagen/ (Anmeldung über die
-[Tools-Übersicht](https://sc1911heiligenstadt.github.io/ToolsUebersicht/) erforderlich).
+**➡️ [Dokumentenvorlagen öffnen](https://sc1911heiligenstadt.github.io/dokumentenvorlagen/)**
 
-## Was es macht
+## Zugang
 
-1. **Vorlagen verwalten** — eine Word-Datei mit Platzhaltern wie `{{VORNAME}}`,
-   `{{NACHNAME}}`, `{{STRASSE}}`, `{{IBAN}}` hochladen, benennen und beschreiben. Das
-   Tool erkennt beim Hochladen automatisch, welche Platzhalter enthalten sind.
-2. **Empfänger wählen** — aus dem zentralen Trainerprofil (Name, Lizenz, Mannschaft)
-   oder, mit einmaliger App-Passwort-Eingabe, aus den Trainerdaten inklusive Adresse
-   und Bankverbindung.
-3. **Erzeugen** — pro Empfänger ein gefülltes Word-Dokument, alle zusammen als ZIP.
+Die Anmeldung läuft über die [Tools-Übersicht](https://sc1911heiligenstadt.github.io/ToolsUebersicht/) — dort einmal anmelden, danach ist dieses Werkzeug offen.
 
-Die ausgefüllten Dokumente werden **rein lokal im Browser** erzeugt und heruntergeladen;
-Bankdaten verlassen den Rechner nicht und werden nie in der Cloud gespeichert.
+Die Rechte gelten in drei Stufen: **Sehen** (nur ansehen), **Bearbeiten** (Einträge pflegen) und **Administrieren** (Einstellungen und Verwaltung). Wer welche Stufe hat, legt die Tools-Übersicht fest.
 
-## Platzhalter
+## Lokal starten
 
-`{{VORNAME}}` `{{NACHNAME}}` `{{MANNSCHAFT}}` `{{LIZENZ}}` `{{GEBURTSDATUM}}`
-`{{STRASSE}}` `{{PLZ}}` `{{ORT}}` `{{PLZ_ORT}}` `{{TELEFON}}` `{{EMAIL}}` `{{IBAN}}`
-`{{BANKNAME}}` `{{BIC}}` `{{PAUSCHALE}}` `{{DATUM}}` `{{JAHR}}`
-
-Tipp: Platzhalter im Word **am Stück** eintippen (nicht mitten im Platzhalter die
-Formatierung wechseln), sonst werden sie durch Word intern zerteilt und nicht ersetzt.
-Das Tool warnt beim Hochladen, wenn ein Platzhalter zerteilt ist.
-
-## PDF erzeugen
-
-Das Tool erzeugt Word-Dokumente. Für **originalgetreue PDFs** das erzeugte ZIP
-entpacken und im Ordner das mitgelieferte Skript ausführen (benötigt Microsoft Word):
-
-```powershell
-.\docx-zu-pdf.ps1
-```
-
-Es exportiert jede `.docx` im Ordner über Word als PDF — rein lokal, kein Internet.
+Über den Eintrag `dokumentenvorlagen` in `E:\.claude\launch.json` — der Server läuft dann auf `http://localhost:8789/`.
 
 ## Technik
 
-Vanilla JS, kein Build-Step. Persistenz + Login über den zentralen ToolsUebersicht-
-Gateway (Cloudflare Worker); die Trainerdaten (inkl. IBAN) werden read-only über den
-bestehenden Trainerdaten-CORS-Proxy gelesen. Deployed via GitHub Pages.
+Vanilla JavaScript ohne Build-Schritt — die Dateien werden so ausgeliefert, wie sie im Repo liegen. Veröffentlicht über GitHub Pages. Die Daten liegen in der Vereins-Nextcloud; der Zugriff läuft ausschließlich über den Login-Worker der Tools-Übersicht, nie mit Zugangsdaten im Browser.
+
+---
+
+Ein Werkzeug des 1. SC 1911 Heiligenstadt. Alle Werkzeuge auf einen Blick: [Tools-Übersicht](https://sc1911heiligenstadt.github.io/ToolsUebersicht/) · Erklärungen im [Toolbox Wiki](https://sc1911heiligenstadt.github.io/Vereinswiki/).
